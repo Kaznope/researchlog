@@ -1,59 +1,89 @@
 # ResearchLog
 
-ResearchLog is a static academic dashboard for student researchers, undergraduate researchers, graduate students, and early-stage researchers. It helps users record research activities, manage paper notes, and review research progress through a clean single-page workspace designed for final assignment submission.
+ResearchLog is a static, browser-based research project tracking service for student researchers, undergraduate researchers, graduate students, and early-stage researchers. It helps users create research projects, track progress through scheduled tasks, connect paper notes to each project, and review research history in a clean academic dashboard.
+
+The app runs entirely with HTML, CSS, and JavaScript. Data is saved in the browser with `localStorage`.
+
+## Project Overview
+
+ResearchLog is organized around research projects rather than one-time activity logs. A user enters a name or email on the home screen to open a local personal workspace. After entering the workspace, the user can create new projects, review project summaries on the dashboard, open project details, update research progress, manage next tasks with due dates, and attach related paper notes.
 
 ## Main Features
 
-- Fixed top navigation with smooth movement and active states between Home, Dashboard, Research Log, Paper Notes, and About sections
-- Landing section with clear calls to add a research log or paper note
-- Research activity form with date, project name, activity type, status, summary, and optional next action fields
-- Friendly validation messages that prevent blank required research logs
-- Search for research logs by project name, summary, next action, or activity type
-- Activity type and status filters that work together with search
-- Dynamic research log cards with activity/status badges, delete controls, and inline status updates
-- Dashboard summary cards for total logs, completed logs, in-progress logs, planned logs, and completion rate
-- Completion progress bar that stays at 0% when there are no logs
-- Recent Logs dashboard section showing the three latest research logs as compact previews
-- Paper note form with required paper title and key finding fields
-- Dynamic paper note cards with delete controls
-- Empty states for no research logs, no paper notes, and no matching filtered/search results
-- Load Sample Data button with at least three research logs and two paper notes for demos
-- Clear All Data button with confirmation before deleting local data
-- localStorage persistence for logs and paper notes across refreshes
-- Responsive academic dashboard layout for desktop, tablet, and mobile
-- Footer with project and final assignment context
+- Home screen with a polished ResearchLog wordmark and application-style logo
+- Local account-style entry using a name or email
+- Dashboard with project counts by status:
+  - Total projects
+  - Completed projects
+  - In-progress projects
+  - Planned projects
+- Project summary cards with:
+  - Project status
+  - Project-level completion rate
+  - Research process summary
+  - Next scheduled task
+  - Related paper count
+- Automatic project completion rate based on completed task checkboxes
+- Automatic project status based on completion rate:
+  - 0%: Planned
+  - 1-99%: In Progress
+  - 100%: Completed
+- Project detail page with research process, next tasks, and related papers
+- Edit mode for project details, including:
+  - Research process editing
+  - Next task creation and deletion
+  - Due date entry for each task
+  - Task completion checkboxes
+  - Related paper note creation
+- Related paper notes with title, authors, content summary, and research relevance
+- Research history page with project search and status filtering
+- Sample data loading with planned, in-progress, and completed project examples
+- Clear current account data with confirmation
+- Responsive layout for desktop, tablet, and mobile screens
+- Data persistence across browser refreshes using `localStorage`
 
 ## Technologies Used
 
 - HTML
 - CSS
 - JavaScript
-- Browser localStorage
+- Browser `localStorage`
 
-No React, Next.js, backend server, database, npm packages, external UI libraries, login, or authentication are used.
+No backend server, database, framework, package manager, build step, or external UI library is required.
 
 ## How to Run Locally
 
 Open `index.html` directly in a web browser.
 
-Local test checklist:
+Recommended local test flow:
 
-1. Add a research log, refresh the page, and confirm the log remains available.
-2. Search by project name, summary, next action, and activity type.
-3. Combine search with the activity and status filters.
-4. Change a log status from the card and confirm dashboard statistics update immediately.
-5. Delete a log and confirm Recent Logs and dashboard statistics update.
-6. Add and delete a paper note and confirm research logs are unaffected.
-7. Submit blank required fields and confirm friendly validation messages appear.
-8. Load sample data, then use Clear All Data and confirm the empty states return.
-9. Open browser developer tools and confirm normal use does not create console errors.
+1. Open `index.html`.
+2. Enter a name or email on the home screen.
+3. Use the new project button to create a research project.
+4. Add next tasks with due dates.
+5. Return to the dashboard and open a project card.
+6. Use the edit button on the project detail page.
+7. Check task completion boxes and confirm the project completion rate and status update automatically.
+8. Add a related paper note from the project edit screen.
+9. Refresh the browser and confirm saved data remains.
+10. Use sample data and clear data buttons to test demo states.
+
+## How to Use the Service
+
+1. Start from the home page and enter a name or email.
+2. Use the dashboard to review all projects at a glance.
+3. Create a new project only when starting a new research project.
+4. Click a project card to open its detail page.
+5. Use edit mode to update research progress, next tasks, and related papers.
+6. Check completed tasks to update completion rate and status automatically.
+7. Use the history page to search and filter previous projects.
 
 ## Deployment
 
-This project can be deployed to Vercel as a static website.
+This project can be deployed as a static website on services such as Vercel, Netlify, or GitHub Pages.
 
-Vercel URL: `https://your-vercel-url.vercel.app`
+Deployment URL: `https://your-deployment-url.example`
 
 ## AI Assistance Note
 
-This project was created with AI assistance. The generated code was organized into static HTML, CSS, and JavaScript files and designed to run without a build step or external dependencies.
+This project was developed with AI assistance using OpenAI Codex CLI. AI was used to help plan the static web app structure, implement HTML/CSS/JavaScript features, improve UI layout, debug localStorage and routing behavior, refine project-based workflows, and prepare project documentation. The final implementation was reviewed and adjusted to match the actual project requirements.
