@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,257 +9,267 @@
 <body>
   <header class="site-header">
     <nav class="nav">
-      <a class="brand" href="#home" aria-label="ResearchLog home">
+      <a class="brand" href="#home" aria-label="ResearchLog 홈">
         <span class="brand-mark">R</span>
         <span>ResearchLog</span>
       </a>
-      <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false">
+      <button class="nav-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false">
         <span></span>
         <span></span>
         <span></span>
       </button>
       <div class="nav-links">
-        <a href="#home">Home</a>
-        <a href="#dashboard">Dashboard</a>
-        <a href="#research-log">Research Log</a>
-        <a href="#paper-notes">Paper Notes</a>
-        <a href="#about">About</a>
+        <a href="#home" data-public-link>홈</a>
+        <a href="#dashboard" data-auth-link>대시보드</a>
+        <a href="#history" data-auth-link>과거 연구 기록</a>
+        <a href="#log-new" data-auth-link>연구 기록 추가</a>
+        <a href="#paper-new" data-auth-link>논문 노트 작성</a>
+        <button id="logoutButton" class="nav-logout" type="button" hidden>나가기</button>
       </div>
     </nav>
   </header>
 
   <main>
-    <section id="home" class="hero section">
-      <div class="hero-content">
-        <p class="eyebrow">Personal research activity tracker</p>
-        <h1>ResearchLog</h1>
-        <p class="hero-copy">
-          Track experiments, paper reading, meetings, writing progress, and ideas in one focused academic workspace.
-        </p>
-        <div class="hero-actions">
-          <a class="button primary" href="#research-log">Add Research Log</a>
-          <a class="button secondary" href="#paper-notes">Add Paper Note</a>
+    <section id="home" class="page hero-page" data-page="home">
+      <div class="hero-layout">
+        <div class="hero-content">
+          <p class="eyebrow">개인 연구 기록 워크스페이스</p>
+          <h1>ResearchLog</h1>
+          <p class="hero-copy">
+            연구 활동, 실험 결과, 논문 노트, 다음 할 일을 계정별로 정리하는 로컬 연구 관리 도구입니다.
+            이름이나 이메일만 입력하면 내 연구 대시보드로 바로 들어갈 수 있습니다.
+          </p>
+          <div class="feature-list" aria-label="주요 기능">
+            <span>진행률 요약</span>
+            <span>과거 연구 기록 열람</span>
+            <span>논문 노트 저장</span>
+          </div>
         </div>
-      </div>
-      <div class="hero-panel" aria-label="Research progress snapshot">
-        <div class="panel-row">
-          <span>Today</span>
-          <strong id="heroToday">0 logs</strong>
-        </div>
-        <div class="panel-row">
-          <span>Completion Rate</span>
-          <strong id="heroCompletion">0%</strong>
-        </div>
-        <div class="panel-row">
-          <span>Paper Notes</span>
-          <strong id="heroPapers">0 saved</strong>
-        </div>
+
+        <form id="accountForm" class="account-card">
+          <div>
+            <p class="panel-kicker">내 계정으로 시작</p>
+            <h2>이름 또는 이메일 입력</h2>
+            <p>입력한 값으로 브라우저 안에 개인 연구 공간이 만들어집니다.</p>
+          </div>
+          <label>
+            이름 또는 이메일
+            <input id="accountInput" type="text" placeholder="예: 김연구 또는 research@example.com" autocomplete="username" required>
+          </label>
+          <p id="accountValidationMessage" class="validation-message" role="alert"></p>
+          <button class="button primary full-width" type="submit">내 계정으로 들어가기</button>
+        </form>
       </div>
     </section>
 
-    <section id="dashboard" class="section">
-      <div class="section-heading">
-        <p class="eyebrow">Dashboard</p>
-        <h2>Research Progress</h2>
-      </div>
-
-      <div class="data-actions" aria-label="Data management">
-        <button id="loadSampleData" class="button secondary" type="button">Load Sample Data</button>
-        <button id="clearAllData" class="button danger" type="button">Clear All Data</button>
+    <section id="dashboard" class="page" data-page="dashboard">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">대시보드</p>
+          <h2><span id="dashboardUserName">내</span> 연구 현황</h2>
+        </div>
+        <div class="page-actions">
+          <a class="button primary" href="#log-new">연구 기록 추가</a>
+          <a class="button secondary" href="#paper-new">논문 노트 작성</a>
+        </div>
       </div>
 
       <div class="stats-grid">
         <article class="stat-card">
-          <span>Total Logs</span>
+          <span>전체 기록</span>
           <strong id="totalLogs">0</strong>
         </article>
-        <article class="stat-card">
-          <span>Completed</span>
+        <article class="stat-card stat-completed">
+          <span>완료</span>
           <strong id="completedLogs">0</strong>
         </article>
-        <article class="stat-card">
-          <span>In Progress</span>
+        <article class="stat-card stat-progress">
+          <span>진행 중</span>
           <strong id="inProgressLogs">0</strong>
         </article>
-        <article class="stat-card">
-          <span>Planned</span>
+        <article class="stat-card stat-planned">
+          <span>예정</span>
           <strong id="plannedLogs">0</strong>
         </article>
         <article class="stat-card accent-card">
-          <span>Completion Rate</span>
+          <span>완료율</span>
           <strong id="completionRate">0%</strong>
         </article>
       </div>
 
       <div class="progress-wrap">
         <div class="progress-label">
-          <span>Completed logs</span>
+          <span>완료된 연구 기록</span>
           <span id="progressText">0%</span>
         </div>
-        <div class="progress-bar" aria-label="Completion rate">
+        <div class="progress-bar" aria-label="완료율">
           <div id="progressFill"></div>
         </div>
       </div>
 
-      <div class="recent-logs-panel">
-        <div class="list-heading">
-          <h3>Recent Logs</h3>
-          <span>Latest 3</span>
-        </div>
-        <div id="recentLogList" class="card-list compact-list" aria-live="polite"></div>
-      </div>
-    </section>
-
-    <section id="research-log" class="section split-section">
-      <div class="section-heading">
-        <p class="eyebrow">Research Log</p>
-        <h2>Record Activity</h2>
-      </div>
-
-      <div class="workspace-grid">
-        <form id="logForm" class="form-card">
-          <div class="form-row two-columns">
-            <label>
-              Date
-              <input id="logDate" type="date" required>
-            </label>
-            <label>
-              Project Name
-              <input id="projectName" type="text" placeholder="e.g. Graph neural network study" required>
-            </label>
-          </div>
-
-          <div class="form-row two-columns">
-            <label>
-              Activity Type
-              <select id="activityType" required>
-                <option value="Paper Reading">Paper Reading</option>
-                <option value="Experiment">Experiment</option>
-                <option value="Coding">Coding</option>
-                <option value="Meeting">Meeting</option>
-                <option value="Writing">Writing</option>
-                <option value="Idea">Idea</option>
-              </select>
-            </label>
-            <label>
-              Status
-              <select id="status" required>
-                <option value="Planned">Planned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </label>
-          </div>
-
-          <label>
-            Summary
-            <textarea id="summary" rows="4" placeholder="What did you do or learn?" required></textarea>
-          </label>
-
-          <label>
-            Next Action
-            <textarea id="nextAction" rows="3" placeholder="What should happen next?"></textarea>
-          </label>
-
-          <p id="logValidationMessage" class="validation-message" role="alert"></p>
-          <button class="button primary full-width" type="submit">Save Research Log</button>
-        </form>
-
-        <div class="list-panel">
-          <div class="filters">
-            <label class="search-field">
-              Search Logs
-              <input id="logSearch" type="search" placeholder="Project, summary, next action, or activity">
-            </label>
-            <label>
-              Activity
-              <select id="activityFilter">
-                <option value="All">All</option>
-                <option value="Paper Reading">Paper Reading</option>
-                <option value="Experiment">Experiment</option>
-                <option value="Coding">Coding</option>
-                <option value="Meeting">Meeting</option>
-                <option value="Writing">Writing</option>
-                <option value="Idea">Idea</option>
-              </select>
-            </label>
-            <label>
-              Status
-              <select id="statusFilter">
-                <option value="All">All</option>
-                <option value="Planned">Planned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </label>
-          </div>
-          <div id="logList" class="card-list" aria-live="polite"></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="paper-notes" class="section split-section">
-      <div class="section-heading">
-        <p class="eyebrow">Paper Notes</p>
-        <h2>Capture Reading Notes</h2>
-      </div>
-
-      <div class="workspace-grid">
-        <form id="paperForm" class="form-card">
-          <label>
-            Paper Title
-            <input id="paperTitle" type="text" placeholder="Paper title" required>
-          </label>
-          <label>
-            Authors
-            <input id="authors" type="text" placeholder="Author names">
-          </label>
-          <label>
-            Key Finding
-            <textarea id="keyFinding" rows="4" placeholder="Main result or argument" required></textarea>
-          </label>
-          <label>
-            Relevance to My Research
-            <textarea id="relevance" rows="4" placeholder="How this paper informs your project"></textarea>
-          </label>
-          <p id="paperValidationMessage" class="validation-message" role="alert"></p>
-          <button class="button primary full-width" type="submit">Save Paper Note</button>
-        </form>
-
-        <div class="list-panel">
+      <div class="dashboard-grid">
+        <section class="panel">
           <div class="list-heading">
-            <h3>Saved Paper Notes</h3>
-            <span id="paperCount">0 notes</span>
+            <h3>과거 연구 기록</h3>
+            <a href="#history">전체 보기</a>
           </div>
-          <div id="paperList" class="card-list" aria-live="polite"></div>
-        </div>
+          <div id="pastLogPreview" class="card-list compact-list" aria-live="polite"></div>
+        </section>
+
+        <section class="panel">
+          <div class="list-heading">
+            <h3>논문 노트</h3>
+            <span id="paperCount">0개</span>
+          </div>
+          <div id="paperPreviewList" class="card-list compact-list" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <div class="data-actions" aria-label="데이터 관리">
+        <button id="loadSampleData" class="button secondary" type="button">샘플 데이터 불러오기</button>
+        <button id="clearAllData" class="button danger" type="button">현재 계정 데이터 삭제</button>
       </div>
     </section>
 
-    <section id="about" class="section about-section">
-      <div class="section-heading">
-        <p class="eyebrow">About</p>
-        <h2>Built for Research Momentum</h2>
+    <section id="history" class="page" data-page="history">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">과거 연구 기록</p>
+          <h2>내가 진행했던 연구 내용</h2>
+        </div>
+        <a class="button primary" href="#log-new">새 연구 기록</a>
       </div>
-      <div class="about-grid">
-        <article>
-          <h3>Keep a useful record</h3>
-          <p>ResearchLog helps student researchers and early-stage researchers document daily activity, outcomes, and next steps.</p>
-        </article>
-        <article>
-          <h3>Review progress quickly</h3>
-          <p>The dashboard turns your logs into a simple progress summary so you can see where work is moving and where it needs attention.</p>
-        </article>
-        <article>
-          <h3>Works locally</h3>
-          <p>All entries are saved in your browser with localStorage. No account, backend, database, or build step is required.</p>
-        </article>
+
+      <div class="filters">
+        <label class="search-field">
+          기록 검색
+          <input id="logSearch" type="search" placeholder="프로젝트, 요약, 다음 할 일, 활동 유형 검색">
+        </label>
+        <label>
+          활동
+          <select id="activityFilter">
+            <option value="All">전체</option>
+            <option value="Paper Reading">논문 읽기</option>
+            <option value="Experiment">실험</option>
+            <option value="Coding">코딩</option>
+            <option value="Meeting">회의</option>
+            <option value="Writing">작성</option>
+            <option value="Idea">아이디어</option>
+          </select>
+        </label>
+        <label>
+          상태
+          <select id="statusFilter">
+            <option value="All">전체</option>
+            <option value="Planned">예정</option>
+            <option value="In Progress">진행 중</option>
+            <option value="Completed">완료</option>
+          </select>
+        </label>
       </div>
+
+      <div id="logList" class="history-list" aria-live="polite"></div>
+    </section>
+
+    <section id="log-detail" class="page" data-page="log-detail">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">연구 기록 상세</p>
+          <h2 id="detailTitle">연구 기록</h2>
+        </div>
+        <a class="button secondary" href="#history">목록으로 돌아가기</a>
+      </div>
+      <article id="logDetailContent" class="detail-panel"></article>
+    </section>
+
+    <section id="log-new" class="page" data-page="log-new">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">연구 기록 추가</p>
+          <h2>오늘의 연구 활동 작성</h2>
+        </div>
+        <a class="button secondary" href="#dashboard">대시보드로 돌아가기</a>
+      </div>
+
+      <form id="logForm" class="form-card standalone-form">
+        <div class="form-row two-columns">
+          <label>
+            날짜
+            <input id="logDate" type="date" required>
+          </label>
+          <label>
+            프로젝트명
+            <input id="projectName" type="text" placeholder="예: 그래프 신경망 성능 분석" required>
+          </label>
+        </div>
+        <div class="form-row two-columns">
+          <label>
+            활동 유형
+            <select id="activityType" required>
+              <option value="Paper Reading">논문 읽기</option>
+              <option value="Experiment">실험</option>
+              <option value="Coding">코딩</option>
+              <option value="Meeting">회의</option>
+              <option value="Writing">작성</option>
+              <option value="Idea">아이디어</option>
+            </select>
+          </label>
+          <label>
+            상태
+            <select id="status" required>
+              <option value="Planned">예정</option>
+              <option value="In Progress">진행 중</option>
+              <option value="Completed">완료</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          요약
+          <textarea id="summary" rows="5" placeholder="무엇을 진행했고 무엇을 알게 되었나요?" required></textarea>
+        </label>
+        <label>
+          다음 할 일
+          <textarea id="nextAction" rows="4" placeholder="다음에 어떤 작업을 이어가야 하나요?"></textarea>
+        </label>
+        <p id="logValidationMessage" class="validation-message" role="alert"></p>
+        <button class="button primary full-width" type="submit">연구 기록 저장</button>
+      </form>
+    </section>
+
+    <section id="paper-new" class="page" data-page="paper-new">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">논문 노트 작성</p>
+          <h2>읽은 논문 정리</h2>
+        </div>
+        <a class="button secondary" href="#dashboard">대시보드로 돌아가기</a>
+      </div>
+
+      <form id="paperForm" class="form-card standalone-form">
+        <label>
+          논문 제목
+          <input id="paperTitle" type="text" placeholder="논문 제목" required>
+        </label>
+        <label>
+          저자
+          <input id="authors" type="text" placeholder="저자명">
+        </label>
+        <label>
+          핵심 내용
+          <textarea id="keyFinding" rows="5" placeholder="주요 결과나 핵심 주장" required></textarea>
+        </label>
+        <label>
+          내 연구와의 관련성
+          <textarea id="relevance" rows="5" placeholder="이 논문이 내 프로젝트에 주는 시사점"></textarea>
+        </label>
+        <p id="paperValidationMessage" class="validation-message" role="alert"></p>
+        <button class="button primary full-width" type="submit">논문 노트 저장</button>
+      </form>
     </section>
   </main>
 
   <footer>
-    <p>ResearchLog - Static research tracking workspace</p>
+    <p>ResearchLog - 계정별 학술 연구 기록 관리 도구</p>
   </footer>
 
   <script src="script.js"></script>

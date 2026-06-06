@@ -1,25 +1,27 @@
 # ResearchLog
 
-ResearchLog is a static web service for student researchers, undergraduate researchers, graduate students, and early-stage researchers. It helps users record research activities, manage paper notes, and review research progress through a simple single-page dashboard.
+ResearchLog is a static academic dashboard for student researchers, undergraduate researchers, graduate students, and early-stage researchers. It helps users record research activities, manage paper notes, and review research progress through a clean single-page workspace designed for final assignment submission.
 
 ## Main Features
 
-- Fixed top navigation with smooth movement between Home, Dashboard, Research Log, Paper Notes, and About sections
+- Fixed top navigation with smooth movement and active states between Home, Dashboard, Research Log, Paper Notes, and About sections
+- Landing section with clear calls to add a research log or paper note
 - Research activity form with date, project name, activity type, status, summary, and optional next action fields
 - Friendly validation messages that prevent blank required research logs
 - Search for research logs by project name, summary, next action, or activity type
 - Activity type and status filters that work together with search
-- Dynamic research log cards with delete controls and inline status updates
+- Dynamic research log cards with activity/status badges, delete controls, and inline status updates
 - Dashboard summary cards for total logs, completed logs, in-progress logs, planned logs, and completion rate
 - Completion progress bar that stays at 0% when there are no logs
-- Recent Logs dashboard section showing the three latest research logs
+- Recent Logs dashboard section showing the three latest research logs as compact previews
 - Paper note form with required paper title and key finding fields
 - Dynamic paper note cards with delete controls
 - Empty states for no research logs, no paper notes, and no matching filtered/search results
 - Load Sample Data button with at least three research logs and two paper notes for demos
 - Clear All Data button with confirmation before deleting local data
 - localStorage persistence for logs and paper notes across refreshes
-- Responsive academic dashboard layout for desktop and mobile
+- Responsive academic dashboard layout for desktop, tablet, and mobile
+- Footer with project and final assignment context
 
 ## Technologies Used
 
