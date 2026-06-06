@@ -10,8 +10,11 @@
   <header class="site-header">
     <nav class="nav">
       <a class="brand" href="#home" aria-label="ResearchLog 홈">
-        <span class="brand-mark">R</span>
-        <span>ResearchLog</span>
+        <span class="brand-mark" aria-hidden="true">
+          <span class="brand-book"></span>
+          <span class="brand-line"></span>
+        </span>
+        <span class="brand-name">ResearchLog</span>
       </a>
       <button class="nav-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false">
         <span></span>
@@ -33,7 +36,9 @@
       <div class="hero-layout">
         <div class="hero-content clean-hero">
           <p class="eyebrow">개인 연구 관리 워크스페이스</p>
-          <h1>ResearchLog</h1>
+          <h1 class="hero-title">
+            <span>Research</span><span>Log</span>
+          </h1>
           <p class="hero-copy">
             진행 중인 연구 프로젝트를 만들고, 대시보드에서 연구 과정과 다음 할 일을 계속 업데이트하는 기록 도구입니다.
           </p>
@@ -78,21 +83,6 @@
         <a class="button primary" href="#log-new">새 프로젝트 만들기</a>
       </div>
 
-      <div class="quick-actions" aria-label="빠른 작성">
-        <button class="quick-action" type="button" data-focus-target="research">
-          <strong>연구 과정 수정</strong>
-          <span>대시보드 카드에서 진행 내용을 바로 업데이트</span>
-        </button>
-        <button class="quick-action" type="button" data-focus-target="todo">
-          <strong>다음 할 일 관리</strong>
-          <span>할 일과 due date를 항목별로 관리</span>
-        </button>
-        <button class="quick-action" type="button" data-focus-target="paper">
-          <strong>관련 논문 작성</strong>
-          <span>프로젝트 카드에서 논문 노트를 연결</span>
-        </button>
-      </div>
-
       <div class="stats-grid">
         <article class="stat-card">
           <span>전체 프로젝트</span>
@@ -110,20 +100,6 @@
           <span>예정</span>
           <strong id="plannedLogs">0</strong>
         </article>
-        <article class="stat-card accent-card">
-          <span>논문 노트</span>
-          <strong id="paperCountStat">0</strong>
-        </article>
-      </div>
-
-      <div class="progress-wrap">
-        <div class="progress-label">
-          <span>프로젝트 완료율</span>
-          <span id="progressText">0%</span>
-        </div>
-        <div class="progress-bar" aria-label="프로젝트 완료율">
-          <div id="progressFill"></div>
-        </div>
       </div>
 
       <section class="panel dashboard-editor-panel">

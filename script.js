@@ -32,9 +32,6 @@ const logoutButton = document.getElementById("logoutButton");
 const navToggle = document.querySelector(".nav-toggle");
 const navLinks = document.querySelector(".nav-links");
 const navigationAnchors = document.querySelectorAll(".nav-links a");
-const focusResearchButtons = document.querySelectorAll("[data-focus-target='research']");
-const focusTodoButtons = document.querySelectorAll("[data-focus-target='todo']");
-const focusPaperButtons = document.querySelectorAll("[data-focus-target='paper']");
 
 document.addEventListener("DOMContentLoaded", initializeApp);
 
@@ -64,9 +61,6 @@ function bindEvents() {
   logoutButton.addEventListener("click", logout);
   navToggle.addEventListener("click", toggleMobileNavigation);
   navLinks.addEventListener("click", closeMobileNavigation);
-  focusResearchButtons.forEach((button) => button.addEventListener("click", () => focusDashboardEditor("summary")));
-  focusTodoButtons.forEach((button) => button.addEventListener("click", () => focusDashboardEditor("todo")));
-  focusPaperButtons.forEach((button) => button.addEventListener("click", () => focusDashboardEditor("paper")));
   window.addEventListener("hashchange", routeToCurrentHash);
 }
 
@@ -98,12 +92,12 @@ function handleProjectSubmit(event) {
     id: createId(),
     date: getInputValue("logDate"),
     projectName: getInputValue("projectName"),
-    status: "In Progress",
     summary: getInputValue("summary"),
     todos: collectTodoInputs(projectTodoInputs),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
+  newProject.status = getProjectStatus(newProject);
 
   const validationError = validateProject(newProject);
   if (validationError) {
@@ -181,15 +175,11 @@ function renderDashboard() {
   const completed = countProjectsByStatus("Completed");
   const inProgress = countProjectsByStatus("In Progress");
   const planned = countProjectsByStatus("Planned");
-  const completionRate = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   document.getElementById("totalLogs").textContent = total;
   document.getElementById("completedLogs").textContent = completed;
   document.getElementById("inProgressLogs").textContent = inProgress;
   document.getElementById("plannedLogs").textContent = planned;
-  document.getElementById("paperCountStat").textContent = paperNotes.length;
-  document.getElementById("progressText").textContent = `${completionRate}%`;
-  document.getElementById("progressFill").style.width = `${completionRate}%`;
 
   renderDashboardProjectList();
 }
@@ -211,21 +201,55 @@ function createDashboardSummaryCard(project) {
   const card = document.createElement("article");
   card.className = "entry-card dashboard-summary-card";
   const nextTodo = (project.todos || []).find((todo) => todo.text || todo.dueDate);
+  const projectStatus = getProjectStatus(project);
+  const canEditFromCard = projectStatus === "In Progress" || projectStatus === "Planned";
   card.innerHTML = `
     <div class="entry-header">
       <div>
         <h3>${escapeHtml(project.projectName || "제목 없는 프로젝트")}</h3>
         <div class="entry-meta">
           <span class="tag">${formatDate(project.date)}</span>
-          <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
+          <span class="tag ${getStatusClass(projectStatus)}">${escapeHtml(getStatusLabel(projectStatus))}</span>
           <span class="tag teal">논문 ${getRelatedPapers(project.projectName).length}개</span>
         </div>
       </div>
-      <a class="button secondary small-button" href="#log-${escapeHtml(project.id)}">상세 보기</a>
+    </div>
+    <div class="project-progress">
+      <div class="progress-label">
+        <span>프로젝트 완료율</span>
+        <span>${getProjectProgress(project)}%</span>
+      </div>
+      <div class="progress-bar" aria-label="프로젝트 완료율">
+        <div style="width: ${getProjectProgress(project)}%"></div>
+      </div>
     </div>
     <p><strong>연구 과정:</strong> ${escapeHtml(truncateText(project.summary || "등록된 연구 과정이 없습니다.", 150))}</p>
     <p><strong>다음 할 일:</strong> ${nextTodo ? `${escapeHtml(nextTodo.text || "할 일 미입력")} ${nextTodo.dueDate ? `(${formatDate(nextTodo.dueDate)})` : ""}` : "등록된 할 일이 없습니다."}</p>
+    <div class="card-actions">
+      ${canEditFromCard ? `
+        <button class="button ghost small-button" type="button" data-card-action="research">연구 과정 수정</button>
+        <button class="button ghost small-button" type="button" data-card-action="todo">다음 할 일</button>
+        <button class="button ghost small-button" type="button" data-card-action="paper">관련 논문</button>
+      ` : ""}
+    </div>
   `;
+  card.querySelectorAll("[data-card-action]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      window.location.hash = `#log-${project.id}`;
+      window.setTimeout(() => {
+        document.getElementById("editProjectButton")?.click();
+        const target = button.dataset.cardAction;
+        const selector = target === "todo" ? "[data-todo-text]" : target === "paper" ? "[data-toggle-paper]" : "[data-edit-summary]";
+        const element = logDetailContent.querySelector(selector);
+        if (target === "paper") {
+          element?.click();
+        }
+        element?.focus();
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    });
+  });
   card.addEventListener("click", (event) => {
     if (event.target.closest("a, button, input, select, textarea")) {
       return;
@@ -260,7 +284,7 @@ function createProjectSummaryCard(project) {
   card.innerHTML = `
     <div class="entry-header">
       <h3>${escapeHtml(project.projectName || "제목 없는 프로젝트")}</h3>
-      <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
+      <span class="tag ${getStatusClass(getProjectStatus(project))}">${escapeHtml(getStatusLabel(getProjectStatus(project)))}</span>
     </div>
     <div class="entry-meta">
       <span class="tag">${formatDate(project.date)}</span>
@@ -268,10 +292,13 @@ function createProjectSummaryCard(project) {
     </div>
     <p><strong>연구 과정:</strong> ${escapeHtml(project.summary || "등록된 연구 과정이 없습니다.")}</p>
     ${renderTodoSummary(project.todos)}
-    <div class="card-actions">
-      <a class="button secondary small-button" href="#log-${escapeHtml(project.id)}">상세 보기</a>
-    </div>
   `;
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("a, button, input, select, textarea")) {
+      return;
+    }
+    window.location.hash = `#log-${project.id}`;
+  });
   return card;
 }
 
@@ -289,7 +316,17 @@ function renderLogDetail(projectId) {
   logDetailContent.innerHTML = `
     <div class="detail-meta">
       <span class="tag">${formatDate(project.date)}</span>
-      <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
+      <span class="tag ${getStatusClass(getProjectStatus(project))}">${escapeHtml(getStatusLabel(getProjectStatus(project)))}</span>
+      <span class="tag teal">완료율 ${getProjectProgress(project)}%</span>
+    </div>
+    <div class="project-progress detail-progress">
+      <div class="progress-label">
+        <span>프로젝트 완료율</span>
+        <span>${getProjectProgress(project)}%</span>
+      </div>
+      <div class="progress-bar" aria-label="프로젝트 완료율">
+        <div style="width: ${getProjectProgress(project)}%"></div>
+      </div>
     </div>
     <section>
       <h3>연구 과정</h3>
@@ -319,22 +356,22 @@ function renderProjectEditMode(projectId) {
   logDetailContent.innerHTML = `
     <div class="detail-meta">
       <span class="tag">${formatDate(project.date)}</span>
-      <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
+      <span class="tag ${getStatusClass(getProjectStatus(project))}" data-live-status>${escapeHtml(getStatusLabel(getProjectStatus(project)))}</span>
+    </div>
+    <div class="project-progress detail-progress">
+      <div class="progress-label">
+        <span>프로젝트 완료율</span>
+        <span data-live-progress>${getProjectProgress(project)}%</span>
+      </div>
+      <div class="progress-bar" aria-label="프로젝트 완료율">
+        <div data-live-progress-fill style="width: ${getProjectProgress(project)}%"></div>
+      </div>
     </div>
 
     <label>
       연구 과정
       <textarea data-edit-summary rows="7">${escapeHtml(project.summary || "")}</textarea>
     </label>
-
-    <div class="form-row two-columns">
-      <label>
-        상태
-        <select data-edit-status>
-          ${STATUS_OPTIONS.map((status) => `<option value="${status}" ${status === project.status ? "selected" : ""}>${getStatusLabel(status)}</option>`).join("")}
-        </select>
-      </label>
-    </div>
 
     <div class="todo-editor-block">
       <div class="list-heading">
@@ -380,6 +417,17 @@ function renderProjectEditMode(projectId) {
 
   const todoContainer = logDetailContent.querySelector("[data-edit-todos]");
   renderTodoInputs(todoContainer, project.todos || []);
+  todoContainer.addEventListener("change", (event) => {
+    if (!event.target.matches("[data-todo-done]")) {
+      return;
+    }
+    project.todos = collectTodoInputs(todoContainer);
+    project.status = getProjectStatus(project);
+    project.updatedAt = new Date().toISOString();
+    saveUserData();
+    updateEditModeProgress(project);
+    renderApp();
+  });
 
   logDetailContent.querySelector("[data-add-todo]").addEventListener("click", () => addTodoInput(todoContainer));
   logDetailContent.querySelector("[data-save-project]").addEventListener("click", () => {
@@ -408,8 +456,8 @@ function saveProjectEdits(projectId, card) {
   }
 
   project.summary = card.querySelector("[data-edit-summary]").value.trim();
-  project.status = card.querySelector("[data-edit-status]").value;
   project.todos = collectTodoInputs(card.querySelector("[data-edit-todos]"));
+  project.status = getProjectStatus(project);
   project.updatedAt = new Date().toISOString();
   saveUserData();
   renderApp();
@@ -463,12 +511,35 @@ function addTodoInput(container, todo = {}) {
   const row = document.createElement("div");
   row.className = "todo-input-row";
   row.innerHTML = `
+    <label class="todo-check-label">
+      <input type="checkbox" data-todo-done ${todo.done ? "checked" : ""}>
+      <span>완료</span>
+    </label>
     <input type="text" data-todo-text placeholder="해야 할 일" value="${escapeHtml(todo.text || "")}">
     <input type="date" data-todo-due value="${escapeHtml(todo.dueDate || "")}" aria-label="Due date">
     <button class="delete-button" type="button">삭제</button>
   `;
   row.querySelector(".delete-button").addEventListener("click", () => row.remove());
   container.appendChild(row);
+}
+
+function updateEditModeProgress(project) {
+  const statusTag = logDetailContent.querySelector("[data-live-status]");
+  const progressValue = logDetailContent.querySelector("[data-live-progress]");
+  const progressFill = logDetailContent.querySelector("[data-live-progress-fill]");
+  const status = getProjectStatus(project);
+  const progress = getProjectProgress(project);
+
+  if (statusTag) {
+    statusTag.className = `tag ${getStatusClass(status)}`;
+    statusTag.textContent = getStatusLabel(status);
+  }
+  if (progressValue) {
+    progressValue.textContent = `${progress}%`;
+  }
+  if (progressFill) {
+    progressFill.style.width = `${progress}%`;
+  }
 }
 
 function ensureProjectTodoRow() {
@@ -480,6 +551,7 @@ function ensureProjectTodoRow() {
 function collectTodoInputs(container) {
   return [...container.querySelectorAll(".todo-input-row")]
     .map((row) => ({
+      done: row.querySelector("[data-todo-done]").checked,
       text: row.querySelector("[data-todo-text]").value.trim(),
       dueDate: row.querySelector("[data-todo-due]").value
     }))
@@ -495,7 +567,7 @@ function renderTodoSummary(todos = []) {
     <div class="todo-summary">
       <strong>다음 할 일</strong>
       ${activeTodos.slice(0, 3).map((todo) => `
-        <span>${escapeHtml(todo.text || "할 일 미입력")} ${todo.dueDate ? `<em>${formatDate(todo.dueDate)}</em>` : ""}</span>
+        <span class="${todo.done ? "todo-done" : ""}">${todo.done ? "완료 - " : ""}${escapeHtml(todo.text || "할 일 미입력")} ${todo.dueDate ? `<em>${formatDate(todo.dueDate)}</em>` : ""}</span>
       `).join("")}
     </div>
   `;
@@ -509,8 +581,8 @@ function renderTodoList(todos = []) {
   return `
     <div class="todo-list">
       ${activeTodos.map((todo) => `
-        <div class="todo-item">
-          <span>${escapeHtml(todo.text || "할 일 미입력")}</span>
+        <div class="todo-item ${todo.done ? "todo-done" : ""}">
+          <span>${todo.done ? "완료 - " : ""}${escapeHtml(todo.text || "할 일 미입력")}</span>
           <strong>${todo.dueDate ? formatDate(todo.dueDate) : "Due date 없음"}</strong>
         </div>
       `).join("")}
@@ -543,7 +615,7 @@ function getFilteredProjects() {
   const searchTerm = logSearch.value.trim().toLowerCase();
 
   return getSortedProjects().filter((project) => {
-    const statusMatches = selectedStatus === "All" || project.status === selectedStatus;
+    const statusMatches = selectedStatus === "All" || getProjectStatus(project) === selectedStatus;
     const searchableText = [
       project.projectName,
       project.summary,
@@ -573,33 +645,28 @@ function normalizeProjectName(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function focusDashboardEditor(target) {
-  if (window.location.hash !== "#dashboard") {
-    window.location.hash = "#dashboard";
-  }
-  window.setTimeout(() => {
-    const firstCard = dashboardProjectList.querySelector(".dashboard-summary-card");
-    if (!firstCard) {
-      window.location.hash = "#log-new";
-      return;
-    }
-    const detailLink = firstCard.querySelector("a[href^='#log-']");
-    detailLink?.click();
-    window.setTimeout(() => {
-      document.getElementById("editProjectButton")?.click();
-      const selector = target === "todo" ? "[data-todo-text]" : target === "paper" ? "[data-toggle-paper]" : "[data-edit-summary]";
-      const element = logDetailContent.querySelector(selector);
-      if (target === "paper") {
-        element?.click();
-      }
-      element?.focus();
-      element?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 100);
-  }, 80);
-}
-
 function truncateText(text, maxLength) {
   return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+}
+
+function getProjectProgress(project) {
+  const todos = (project.todos || []).filter((todo) => todo.text || todo.dueDate);
+  if (todos.length > 0) {
+    const completedTodos = todos.filter((todo) => todo.done).length;
+    return Math.round((completedTodos / todos.length) * 100);
+  }
+  return 0;
+}
+
+function getProjectStatus(project) {
+  const progress = getProjectProgress(project);
+  if (progress === 0) {
+    return "Planned";
+  }
+  if (progress === 100) {
+    return "Completed";
+  }
+  return "In Progress";
 }
 
 function loadSampleData() {
@@ -661,12 +728,14 @@ function saveUserData() {
 function migrateProjectShape() {
   researchLogs = researchLogs.map((project) => ({
     ...project,
-    status: project.status || "In Progress",
     todos: Array.isArray(project.todos)
       ? project.todos
       : project.nextAction
-        ? [{ text: project.nextAction, dueDate: "" }]
+        ? [{ done: false, text: project.nextAction, dueDate: project.date || getTodayDate() }]
         : []
+  })).map((project) => ({
+    ...project,
+    status: getProjectStatus(project)
   }));
 }
 
@@ -703,9 +772,9 @@ function createSampleData() {
         status: "In Progress",
         summary: "검색 증강 생성 모델의 답변 품질을 평가하는 연구입니다. 동일한 질문 120개에 대해 기본 생성 모델과 검색 결합 모델을 비교했고, 근거 포함 여부, 인용 문장 정확도, 환각 문장 수를 지표로 정리하고 있습니다. 현재 top-k 3 설정이 가장 안정적이며, 검색 문서 길이가 너무 길 때 잘못된 인용이 증가하는 패턴을 확인했습니다.",
         todos: [
-          { text: "검색 점수 임계값을 적용한 실험 다시 실행", dueDate: toDateInputValue(addDays(today, 2)) },
-          { text: "실패 사례 5개를 보고서 표로 정리", dueDate: toDateInputValue(addDays(today, 4)) },
-          { text: "최종 평가 지표 정의 문단 작성", dueDate: toDateInputValue(addDays(today, 6)) }
+          { done: true, text: "검색 점수 임계값을 적용한 실험 다시 실행", dueDate: toDateInputValue(addDays(today, -1)) },
+          { done: false, text: "실패 사례 5개를 보고서 표로 정리", dueDate: toDateInputValue(addDays(today, 4)) },
+          { done: false, text: "최종 평가 지표 정의 문단 작성", dueDate: toDateInputValue(addDays(today, 6)) }
         ],
         createdAt: threeDaysAgo.toISOString(),
         updatedAt: today.toISOString()
@@ -717,11 +786,24 @@ function createSampleData() {
         status: "Planned",
         summary: "단백질 접힘 예측 모델의 베이스라인을 검증하는 연구입니다. 초기 학습에서는 18 에폭 이후 검증 손실이 흔들렸고, 긴 서열에서 예측 오차가 크게 증가했습니다. 전체 평균 성능만 보면 짧은 서열에 편향될 수 있어서 서열 길이별 성능을 따로 분석하려고 합니다.",
         todos: [
-          { text: "서열 길이를 3개 구간으로 나누어 성능 재계산", dueDate: toDateInputValue(addDays(today, 3)) },
-          { text: "positional encoding 설정 변경 실험 준비", dueDate: toDateInputValue(addDays(today, 7)) }
+          { done: false, text: "서열 길이를 3개 구간으로 나누어 성능 재계산", dueDate: toDateInputValue(addDays(today, 3)) },
+          { done: false, text: "positional encoding 설정 변경 실험 준비", dueDate: toDateInputValue(addDays(today, 7)) }
         ],
         createdAt: lastWeek.toISOString(),
         updatedAt: lastWeek.toISOString()
+      },
+      {
+        id: createId(),
+        date: toDateInputValue(addDays(today, -14)),
+        projectName: "어노테이션 품질 분석 프로젝트",
+        status: "Completed",
+        summary: "연구 데이터 라벨링 품질을 분석하는 프로젝트입니다. 평가자 3명의 라벨을 비교해 불일치가 높은 항목을 분류했고, 기준 문서가 모호한 문항에서 오류가 집중되는 것을 확인했습니다. 최종적으로 라벨 기준 문서를 개정하고 검수 체크리스트를 만들었습니다.",
+        todos: [
+          { done: true, text: "완료 보고서 제출", dueDate: toDateInputValue(addDays(today, -2)) },
+          { done: true, text: "개정된 라벨 기준 문서 공유", dueDate: toDateInputValue(addDays(today, -1)) }
+        ],
+        createdAt: addDays(today, -14).toISOString(),
+        updatedAt: addDays(today, -1).toISOString()
       }
     ],
     papers: [
@@ -751,6 +833,15 @@ function createSampleData() {
         keyFinding: "진화 정보와 딥러닝 구조 모듈을 결합해 단백질 구조 예측 정확도를 크게 높였습니다.",
         relevance: "전체 평균 성능만 보지 않고 서열 길이별 성능을 따로 봐야 한다는 근거로 사용했습니다.",
         createdAt: lastWeek.toISOString()
+      },
+      {
+        id: createId(),
+        projectName: "어노테이션 품질 분석 프로젝트",
+        title: "Measuring Agreement in Human Annotation",
+        authors: "Artstein 외",
+        keyFinding: "평가자 간 일치도를 해석할 때 단순 일치율뿐 아니라 우연 일치 가능성을 보정해야 한다는 점을 정리했습니다.",
+        relevance: "완료 프로젝트의 라벨 품질 분석에서 Cohen's kappa와 불일치 유형 분류를 함께 사용한 근거가 되었습니다.",
+        createdAt: addDays(today, -10).toISOString()
       }
     ]
   };
@@ -761,7 +852,7 @@ function setDefaultDate() {
 }
 
 function countProjectsByStatus(status) {
-  return researchLogs.filter((project) => project.status === status).length;
+  return researchLogs.filter((project) => getProjectStatus(project) === status).length;
 }
 
 function showValidationMessage(element, message) {

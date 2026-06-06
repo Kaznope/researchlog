@@ -66,7 +66,7 @@ textarea {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   color: var(--white);
   font-size: 1.1rem;
   font-weight: 800;
@@ -74,13 +74,53 @@ textarea {
 }
 
 .brand-mark {
+  position: relative;
   display: grid;
   width: 36px;
   height: 36px;
   place-items: center;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--teal), #1aa39d);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 38%),
+    linear-gradient(135deg, #0a6f6a, #18a39b);
   color: var(--white);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f4c542;
+}
+
+.brand-book {
+  width: 18px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.94);
+  border-right-width: 4px;
+  border-radius: 3px;
+}
+
+.brand-line {
+  position: absolute;
+  left: 12px;
+  top: 13px;
+  width: 8px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 5px 0 rgba(255, 255, 255, 0.82);
+}
+
+.brand-name {
+  letter-spacing: 0;
 }
 
 .nav-links {
@@ -169,6 +209,35 @@ textarea {
 .hero-content h1 {
   max-width: 760px;
   font-size: clamp(3rem, 7vw, 5.5rem);
+}
+
+.hero-title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.08em;
+  align-items: baseline;
+  letter-spacing: 0;
+}
+
+.hero-title span:first-child {
+  color: var(--navy);
+}
+
+.hero-title span:last-child {
+  position: relative;
+  color: var(--teal-dark);
+}
+
+.hero-title span:last-child::after {
+  content: "";
+  position: absolute;
+  left: 0.06em;
+  right: 0.02em;
+  bottom: 0.05em;
+  height: 0.12em;
+  border-radius: 999px;
+  background: rgba(8, 127, 121, 0.16);
+  z-index: -1;
 }
 
 .hero-copy {
@@ -295,49 +364,6 @@ textarea {
   margin-top: 18px;
 }
 
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.editor-actions {
-  margin-top: -6px;
-}
-
-.quick-action {
-  display: grid;
-  gap: 4px;
-  min-height: 76px;
-  border: 1px solid var(--gray-200);
-  border-radius: 8px;
-  background: var(--white);
-  color: var(--gray-700);
-  padding: 14px;
-  text-align: left;
-  cursor: pointer;
-  box-shadow: var(--shadow-soft);
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.quick-action:hover,
-.quick-action:focus {
-  border-color: rgba(8, 127, 121, 0.42);
-  box-shadow: var(--shadow);
-  transform: translateY(-1px);
-}
-
-.quick-action strong {
-  color: var(--navy);
-  font-size: 0.98rem;
-}
-
-.quick-action span {
-  font-size: 0.88rem;
-  font-weight: 700;
-}
-
 .button {
   display: inline-flex;
   min-height: 44px;
@@ -394,7 +420,7 @@ textarea {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
   gap: 14px;
 }
 
@@ -452,6 +478,16 @@ textarea {
 .progress-wrap {
   margin-top: 18px;
   padding: 22px;
+}
+
+.project-progress {
+  display: grid;
+  gap: 8px;
+  margin: 2px 0 4px;
+}
+
+.detail-progress {
+  margin: 18px 0 4px;
 }
 
 .progress-label {
@@ -763,9 +799,22 @@ textarea:focus {
 
 .todo-input-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 170px auto;
+  grid-template-columns: auto minmax(0, 1fr) 170px auto;
   gap: 10px;
   align-items: center;
+}
+
+.todo-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gray-700);
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.todo-check-label input {
+  width: auto;
 }
 
 .todo-summary,
@@ -790,6 +839,11 @@ textarea:focus {
   color: var(--gray-700);
   padding: 9px 10px;
   font-weight: 700;
+}
+
+.todo-done {
+  color: var(--gray-500) !important;
+  text-decoration: line-through;
 }
 
 .todo-summary em,
@@ -916,10 +970,6 @@ textarea:focus-visible {
 
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .quick-actions {
-    grid-template-columns: 1fr;
   }
 
   .page-heading {
