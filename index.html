@@ -22,8 +22,8 @@
         <a href="#home" data-public-link>홈</a>
         <a href="#dashboard" data-auth-link>대시보드</a>
         <a href="#history" data-auth-link>과거 연구 기록</a>
-        <a href="#log-new" data-auth-link>연구 기록 추가</a>
-        <button id="logoutButton" class="nav-logout" type="button" hidden>나가기</button>
+        <a href="#log-new" data-auth-link>새 프로젝트</a>
+        <button id="logoutButton" class="nav-logout" type="button" hidden>로그아웃</button>
       </div>
     </nav>
   </header>
@@ -31,17 +31,25 @@
   <main>
     <section id="home" class="page hero-page" data-page="home">
       <div class="hero-layout">
-        <div class="hero-content">
-          <p class="eyebrow">개인 연구 기록 워크스페이스</p>
+        <div class="hero-content clean-hero">
+          <p class="eyebrow">개인 연구 관리 워크스페이스</p>
           <h1>ResearchLog</h1>
           <p class="hero-copy">
-            프로젝트별로 연구 진행 과정과 읽은 논문을 함께 정리하는 로컬 연구 관리 도구입니다.
-            이름이나 이메일만 입력하면 내 연구 대시보드로 바로 들어갈 수 있습니다.
+            진행 중인 연구 프로젝트를 만들고, 대시보드에서 연구 과정과 다음 할 일을 계속 업데이트하는 기록 도구입니다.
           </p>
-          <div class="feature-list" aria-label="주요 기능">
-            <span>프로젝트별 연구 진행 정리</span>
-            <span>여러 논문 노트 연결</span>
-            <span>과거 연구 상세 열람</span>
+          <div class="home-summary">
+            <div>
+              <strong>프로젝트 중심</strong>
+              <span>새 연구는 프로젝트로 만들고 이후 진행 상황을 누적합니다.</span>
+            </div>
+            <div>
+              <strong>스케줄 관리</strong>
+              <span>다음 할 일을 항목별 due date와 함께 정리합니다.</span>
+            </div>
+            <div>
+              <strong>논문 연결</strong>
+              <span>읽은 논문을 프로젝트에 연결해 근거를 남깁니다.</span>
+            </div>
           </div>
         </div>
 
@@ -65,31 +73,29 @@
       <div class="page-heading">
         <div>
           <p class="eyebrow">대시보드</p>
-          <h2><span id="dashboardUserName">내</span> 연구 현황</h2>
+          <h2><span id="dashboardUserName">내</span> 연구 프로젝트</h2>
         </div>
-        <div class="page-actions">
-          <a class="button primary" href="#log-new">연구 기록 또는 논문 노트 추가</a>
-        </div>
+        <a class="button primary" href="#log-new">새 프로젝트 만들기</a>
       </div>
 
       <div class="quick-actions" aria-label="빠른 작성">
         <button class="quick-action" type="button" data-focus-target="research">
-          <strong>진행중인 연구 작성</strong>
-          <span>무슨 연구를 하고 있는지 구체적으로 기록</span>
+          <strong>연구 과정 수정</strong>
+          <span>대시보드 카드에서 진행 내용을 바로 업데이트</span>
         </button>
         <button class="quick-action" type="button" data-focus-target="todo">
-          <strong>해야 할 일 정리</strong>
-          <span>다음 실험, 보완점, 완료 정리 작성</span>
+          <strong>다음 할 일 관리</strong>
+          <span>할 일과 due date를 항목별로 관리</span>
         </button>
         <button class="quick-action" type="button" data-focus-target="paper">
           <strong>관련 논문 작성</strong>
-          <span>프로젝트에 논문 제목, 저자, 내용 정리 연결</span>
+          <span>프로젝트 카드에서 논문 노트를 연결</span>
         </button>
       </div>
 
       <div class="stats-grid">
         <article class="stat-card">
-          <span>전체 연구 기록</span>
+          <span>전체 프로젝트</span>
           <strong id="totalLogs">0</strong>
         </article>
         <article class="stat-card stat-completed">
@@ -112,31 +118,21 @@
 
       <div class="progress-wrap">
         <div class="progress-label">
-          <span>연구 완료율</span>
+          <span>프로젝트 완료율</span>
           <span id="progressText">0%</span>
         </div>
-        <div class="progress-bar" aria-label="연구 완료율">
+        <div class="progress-bar" aria-label="프로젝트 완료율">
           <div id="progressFill"></div>
         </div>
       </div>
 
-      <div class="dashboard-grid">
-        <section class="panel">
-          <div class="list-heading">
-            <h3>과거 연구 기록</h3>
-            <a href="#history">전체 보기</a>
-          </div>
-          <div id="pastLogPreview" class="card-list compact-list" aria-live="polite"></div>
-        </section>
-
-        <section class="panel">
-          <div class="list-heading">
-            <h3>프로젝트별 관련 논문</h3>
-            <span id="paperCount">0개</span>
-          </div>
-          <div id="paperPreviewList" class="card-list compact-list" aria-live="polite"></div>
-        </section>
-      </div>
+      <section class="panel dashboard-editor-panel">
+        <div class="list-heading">
+          <h3>프로젝트 요약</h3>
+          <span>클릭해서 상세 보기</span>
+        </div>
+        <div id="dashboardProjectList" class="dashboard-project-list" aria-live="polite"></div>
+      </section>
 
       <div class="data-actions" aria-label="데이터 관리">
         <button id="loadSampleData" class="button secondary" type="button">상세 샘플 데이터 불러오기</button>
@@ -150,25 +146,13 @@
           <p class="eyebrow">과거 연구 기록</p>
           <h2>프로젝트별 연구 진행 내용</h2>
         </div>
-        <a class="button primary" href="#log-new">새 기록 추가</a>
+        <a class="button primary" href="#log-new">새 프로젝트 만들기</a>
       </div>
 
       <div class="filters">
         <label class="search-field">
-          기록 검색
-          <input id="logSearch" type="search" placeholder="프로젝트, 요약, 다음 할 일, 활동 유형 검색">
-        </label>
-        <label>
-          활동
-          <select id="activityFilter">
-            <option value="All">전체</option>
-            <option value="Paper Reading">논문 읽기</option>
-            <option value="Experiment">실험</option>
-            <option value="Coding">코딩</option>
-            <option value="Meeting">회의</option>
-            <option value="Writing">작성</option>
-            <option value="Idea">아이디어</option>
-          </select>
+          프로젝트 검색
+          <input id="logSearch" type="search" placeholder="프로젝트명, 연구 내용, 다음 할 일 검색">
         </label>
         <label>
           상태
@@ -198,107 +182,40 @@
     <section id="log-new" class="page" data-page="log-new">
       <div class="page-heading">
         <div>
-          <p class="eyebrow">연구 기록 추가</p>
-          <h2>연구 진행과 논문 노트 함께 작성</h2>
+          <p class="eyebrow">새 프로젝트</p>
+          <h2>새 연구 프로젝트 만들기</h2>
         </div>
         <a class="button secondary" href="#dashboard">대시보드로 돌아가기</a>
       </div>
 
-      <div class="quick-actions editor-actions" aria-label="작성 위치 이동">
-        <button class="quick-action" type="button" data-focus-target="research">
-          <strong>진행중인 연구</strong>
-          <span>목표, 방법, 현재 결과 입력</span>
-        </button>
-        <button class="quick-action" type="button" data-focus-target="todo">
-          <strong>해야 할 일</strong>
-          <span>다음 단계와 완료 정리 입력</span>
-        </button>
-        <button class="quick-action" type="button" data-focus-target="paper">
-          <strong>관련 논문</strong>
-          <span>논문 노트를 프로젝트에 연결</span>
-        </button>
-      </div>
-
-      <div class="editor-grid">
-        <form id="logForm" class="form-card">
-          <div>
-            <p class="panel-kicker">연구 진행 기록</p>
-            <h3>프로젝트에 연구 활동 추가</h3>
+      <form id="projectForm" class="form-card standalone-project-form">
+        <div>
+          <p class="panel-kicker">프로젝트 생성</p>
+        </div>
+        <div class="form-row two-columns">
+          <label>
+            시작일
+            <input id="logDate" type="date" required>
+          </label>
+          <label>
+            프로젝트명
+            <input id="projectName" type="text" placeholder="예: 검색 증강 생성 평가 연구" required>
+          </label>
+        </div>
+        <label>
+          현재 진행 중인 연구
+          <textarea id="summary" rows="6" placeholder="무슨 연구를 진행 중인지, 목표와 현재 진행 상황을 적어주세요." required></textarea>
+        </label>
+        <div class="todo-editor-block">
+          <div class="list-heading">
+            <h3>다음 할 일</h3>
+            <button id="addProjectTodoButton" class="button secondary small-button" type="button">할 일 추가</button>
           </div>
-          <div class="form-row two-columns">
-            <label>
-              날짜
-              <input id="logDate" type="date" required>
-            </label>
-            <label>
-              프로젝트명
-              <input id="projectName" type="text" list="projectNameOptions" placeholder="예: 검색 증강 생성 평가 연구" required>
-            </label>
-          </div>
-          <div class="form-row two-columns">
-            <label>
-              활동 유형
-              <select id="activityType" required>
-                <option value="Paper Reading">논문 읽기</option>
-                <option value="Experiment">실험</option>
-                <option value="Coding">코딩</option>
-                <option value="Meeting">회의</option>
-                <option value="Writing">작성</option>
-                <option value="Idea">아이디어</option>
-              </select>
-            </label>
-            <label>
-              상태
-              <select id="status" required>
-                <option value="Planned">예정</option>
-                <option value="In Progress">진행 중</option>
-                <option value="Completed">완료</option>
-              </select>
-            </label>
-          </div>
-          <label>
-            진행 내용
-            <textarea id="summary" rows="6" placeholder="연구 목표, 진행한 방법, 확인한 결과를 구체적으로 적어주세요." required></textarea>
-          </label>
-          <label>
-            다음 할 일 또는 완료 정리
-            <textarea id="nextAction" rows="4" placeholder="다음 실험, 보완할 점, 완료된 결론 등을 적어주세요."></textarea>
-          </label>
-          <p id="logValidationMessage" class="validation-message" role="alert"></p>
-          <button class="button primary full-width" type="submit">연구 기록 저장</button>
-        </form>
-
-        <form id="paperForm" class="form-card">
-          <div>
-            <p class="panel-kicker">관련 논문 노트</p>
-            <h3>같은 프로젝트에 논문 추가</h3>
-          </div>
-          <label>
-            연결할 프로젝트명
-            <input id="paperProjectName" type="text" list="projectNameOptions" placeholder="예: 검색 증강 생성 평가 연구" required>
-          </label>
-          <label>
-            논문 제목
-            <input id="paperTitle" type="text" placeholder="논문 제목" required>
-          </label>
-          <label>
-            저자
-            <input id="authors" type="text" placeholder="저자명">
-          </label>
-          <label>
-            내용 정리
-            <textarea id="keyFinding" rows="5" placeholder="핵심 방법, 실험 조건, 주요 결과를 정리하세요." required></textarea>
-          </label>
-          <label>
-            내 연구와의 관련성
-            <textarea id="relevance" rows="4" placeholder="이 논문이 프로젝트 설계나 해석에 어떤 영향을 주는지 적어주세요."></textarea>
-          </label>
-          <p id="paperValidationMessage" class="validation-message" role="alert"></p>
-          <button class="button secondary full-width" type="submit">논문 노트 저장</button>
-        </form>
-      </div>
-
-      <datalist id="projectNameOptions"></datalist>
+          <div id="projectTodoInputs" class="todo-input-list"></div>
+        </div>
+        <p id="logValidationMessage" class="validation-message" role="alert"></p>
+        <button class="button primary full-width" type="submit">새 프로젝트 저장</button>
+      </form>
     </section>
   </main>
 

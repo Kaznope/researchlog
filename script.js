@@ -8,14 +8,6 @@ const STATUS_LABELS = {
   "In Progress": "진행 중",
   Completed: "완료"
 };
-const ACTIVITY_LABELS = {
-  "Paper Reading": "논문 읽기",
-  Experiment: "실험",
-  Coding: "코딩",
-  Meeting: "회의",
-  Writing: "작성",
-  Idea: "아이디어"
-};
 
 let currentUser = null;
 let researchLogs = [];
@@ -25,17 +17,15 @@ const pages = document.querySelectorAll("[data-page]");
 const accountForm = document.getElementById("accountForm");
 const accountInput = document.getElementById("accountInput");
 const accountValidationMessage = document.getElementById("accountValidationMessage");
-const logForm = document.getElementById("logForm");
-const paperForm = document.getElementById("paperForm");
+const projectForm = document.getElementById("projectForm");
 const logList = document.getElementById("logList");
-const pastLogPreview = document.getElementById("pastLogPreview");
-const paperPreviewList = document.getElementById("paperPreviewList");
+const dashboardProjectList = document.getElementById("dashboardProjectList");
+const projectTodoInputs = document.getElementById("projectTodoInputs");
+const addProjectTodoButton = document.getElementById("addProjectTodoButton");
 const logDetailContent = document.getElementById("logDetailContent");
-const activityFilter = document.getElementById("activityFilter");
 const statusFilter = document.getElementById("statusFilter");
 const logSearch = document.getElementById("logSearch");
 const logValidationMessage = document.getElementById("logValidationMessage");
-const paperValidationMessage = document.getElementById("paperValidationMessage");
 const loadSampleDataButton = document.getElementById("loadSampleData");
 const clearAllDataButton = document.getElementById("clearAllData");
 const logoutButton = document.getElementById("logoutButton");
@@ -55,9 +45,9 @@ function initializeApp() {
   }
 
   accountForm.setAttribute("novalidate", "");
-  logForm.setAttribute("novalidate", "");
-  paperForm.setAttribute("novalidate", "");
+  projectForm.setAttribute("novalidate", "");
   setDefaultDate();
+  ensureProjectTodoRow();
   bindEvents();
   renderApp();
   routeToCurrentHash();
@@ -65,9 +55,8 @@ function initializeApp() {
 
 function bindEvents() {
   accountForm.addEventListener("submit", handleAccountSubmit);
-  logForm.addEventListener("submit", handleLogSubmit);
-  paperForm.addEventListener("submit", handlePaperSubmit);
-  activityFilter.addEventListener("change", renderHistory);
+  projectForm.addEventListener("submit", handleProjectSubmit);
+  addProjectTodoButton.addEventListener("click", () => addTodoInput(projectTodoInputs));
   statusFilter.addEventListener("change", renderHistory);
   logSearch.addEventListener("input", renderHistory);
   loadSampleDataButton.addEventListener("click", loadSampleData);
@@ -75,9 +64,9 @@ function bindEvents() {
   logoutButton.addEventListener("click", logout);
   navToggle.addEventListener("click", toggleMobileNavigation);
   navLinks.addEventListener("click", closeMobileNavigation);
-  focusResearchButtons.forEach((button) => button.addEventListener("click", () => openEditorAndFocus("summary")));
-  focusTodoButtons.forEach((button) => button.addEventListener("click", () => openEditorAndFocus("nextAction")));
-  focusPaperButtons.forEach((button) => button.addEventListener("click", () => openEditorAndFocus("paperProjectName")));
+  focusResearchButtons.forEach((button) => button.addEventListener("click", () => focusDashboardEditor("summary")));
+  focusTodoButtons.forEach((button) => button.addEventListener("click", () => focusDashboardEditor("todo")));
+  focusPaperButtons.forEach((button) => button.addEventListener("click", () => focusDashboardEditor("paper")));
   window.addEventListener("hashchange", routeToCurrentHash);
 }
 
@@ -101,60 +90,35 @@ function handleAccountSubmit(event) {
   window.location.hash = "#dashboard";
 }
 
-function handleLogSubmit(event) {
+function handleProjectSubmit(event) {
   event.preventDefault();
   clearValidationMessage(logValidationMessage);
 
-  const newLog = {
+  const newProject = {
     id: createId(),
     date: getInputValue("logDate"),
     projectName: getInputValue("projectName"),
-    activityType: getInputValue("activityType"),
-    status: getInputValue("status"),
+    status: "In Progress",
     summary: getInputValue("summary"),
-    nextAction: getInputValue("nextAction"),
-    createdAt: new Date().toISOString()
+    todos: collectTodoInputs(projectTodoInputs),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
 
-  const validationError = validateResearchLog(newLog);
+  const validationError = validateProject(newProject);
   if (validationError) {
     showValidationMessage(logValidationMessage, validationError);
     return;
   }
 
-  researchLogs.unshift(newLog);
+  researchLogs.unshift(newProject);
   saveUserData();
-  document.getElementById("paperProjectName").value = newLog.projectName;
-  logForm.reset();
+  projectForm.reset();
+  projectTodoInputs.innerHTML = "";
+  ensureProjectTodoRow();
   setDefaultDate();
   renderApp();
-  window.location.hash = `#log-${newLog.id}`;
-}
-
-function handlePaperSubmit(event) {
-  event.preventDefault();
-  clearValidationMessage(paperValidationMessage);
-
-  const newPaperNote = {
-    id: createId(),
-    projectName: getInputValue("paperProjectName"),
-    title: getInputValue("paperTitle"),
-    authors: getInputValue("authors"),
-    keyFinding: getInputValue("keyFinding"),
-    relevance: getInputValue("relevance"),
-    createdAt: new Date().toISOString()
-  };
-
-  const validationError = validatePaperNote(newPaperNote);
-  if (validationError) {
-    showValidationMessage(paperValidationMessage, validationError);
-    return;
-  }
-
-  paperNotes.unshift(newPaperNote);
-  saveUserData();
-  paperForm.reset();
-  renderApp();
+  window.location.hash = "#dashboard";
 }
 
 function routeToCurrentHash() {
@@ -194,47 +158,29 @@ function showPage(pageName) {
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
-function openEditorAndFocus(inputId) {
-  if (window.location.hash !== "#log-new") {
-    window.location.hash = "#log-new";
-  }
-
-  window.setTimeout(() => {
-    const target = document.getElementById(inputId);
-    if (target) {
-      target.focus();
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, 80);
-}
-
 function renderApp() {
   renderNavigationState();
-  renderProjectOptions();
+  migrateProjectShape();
   renderDashboard();
   renderHistory();
-  renderPaperPreview();
 }
 
 function renderNavigationState() {
   document.querySelectorAll("[data-auth-link]").forEach((link) => {
     link.hidden = !currentUser;
   });
+  document.querySelectorAll("[data-public-link]").forEach((link) => {
+    link.hidden = Boolean(currentUser);
+  });
   logoutButton.hidden = !currentUser;
   document.getElementById("dashboardUserName").textContent = currentUser ? currentUser.name : "내";
 }
 
-function renderProjectOptions() {
-  const datalist = document.getElementById("projectNameOptions");
-  const projectNames = getProjectNames();
-  datalist.innerHTML = projectNames.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
-}
-
 function renderDashboard() {
   const total = researchLogs.length;
-  const completed = countLogsByStatus("Completed");
-  const inProgress = countLogsByStatus("In Progress");
-  const planned = countLogsByStatus("Planned");
+  const completed = countProjectsByStatus("Completed");
+  const inProgress = countProjectsByStatus("In Progress");
+  const planned = countProjectsByStatus("Planned");
   const completionRate = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   document.getElementById("totalLogs").textContent = total;
@@ -245,24 +191,52 @@ function renderDashboard() {
   document.getElementById("progressText").textContent = `${completionRate}%`;
   document.getElementById("progressFill").style.width = `${completionRate}%`;
 
-  renderPastLogPreview();
+  renderDashboardProjectList();
 }
 
-function renderPastLogPreview() {
-  pastLogPreview.innerHTML = "";
+function renderDashboardProjectList() {
+  dashboardProjectList.innerHTML = "";
 
   if (researchLogs.length === 0) {
-    pastLogPreview.innerHTML = '<p class="empty-state">아직 연구 기록이 없습니다. 연구 기록 추가 버튼으로 첫 기록을 남겨 보세요.</p>';
+    dashboardProjectList.innerHTML = '<p class="empty-state">아직 프로젝트가 없습니다. 새 프로젝트를 먼저 만들어 주세요.</p>';
     return;
   }
 
-  getSortedLogs().slice(0, 4).forEach((log) => {
-    pastLogPreview.appendChild(createLogCard(log));
+  getSortedProjects().forEach((project) => {
+    dashboardProjectList.appendChild(createDashboardSummaryCard(project));
   });
 }
 
+function createDashboardSummaryCard(project) {
+  const card = document.createElement("article");
+  card.className = "entry-card dashboard-summary-card";
+  const nextTodo = (project.todos || []).find((todo) => todo.text || todo.dueDate);
+  card.innerHTML = `
+    <div class="entry-header">
+      <div>
+        <h3>${escapeHtml(project.projectName || "제목 없는 프로젝트")}</h3>
+        <div class="entry-meta">
+          <span class="tag">${formatDate(project.date)}</span>
+          <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
+          <span class="tag teal">논문 ${getRelatedPapers(project.projectName).length}개</span>
+        </div>
+      </div>
+      <a class="button secondary small-button" href="#log-${escapeHtml(project.id)}">상세 보기</a>
+    </div>
+    <p><strong>연구 과정:</strong> ${escapeHtml(truncateText(project.summary || "등록된 연구 과정이 없습니다.", 150))}</p>
+    <p><strong>다음 할 일:</strong> ${nextTodo ? `${escapeHtml(nextTodo.text || "할 일 미입력")} ${nextTodo.dueDate ? `(${formatDate(nextTodo.dueDate)})` : ""}` : "등록된 할 일이 없습니다."}</p>
+  `;
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("a, button, input, select, textarea")) {
+      return;
+    }
+    window.location.hash = `#log-${project.id}`;
+  });
+  return card;
+}
+
 function renderHistory() {
-  const filteredLogs = getFilteredLogs();
+  const filteredProjects = getFilteredProjects();
   logList.innerHTML = "";
 
   if (researchLogs.length === 0) {
@@ -270,99 +244,278 @@ function renderHistory() {
     return;
   }
 
-  if (filteredLogs.length === 0) {
-    logList.innerHTML = '<p class="empty-state">조건에 맞는 연구 기록이 없습니다.</p>';
+  if (filteredProjects.length === 0) {
+    logList.innerHTML = '<p class="empty-state">조건에 맞는 프로젝트가 없습니다.</p>';
     return;
   }
 
-  filteredLogs.forEach((log) => {
-    logList.appendChild(createLogCard(log, { detailed: true }));
+  filteredProjects.forEach((project) => {
+    logList.appendChild(createProjectSummaryCard(project));
   });
 }
 
-function createLogCard(log, options = {}) {
-  const relatedCount = getRelatedPapers(log.projectName).length;
+function createProjectSummaryCard(project) {
   const card = document.createElement("article");
   card.className = "entry-card";
   card.innerHTML = `
     <div class="entry-header">
-      <h3>${escapeHtml(log.projectName || "제목 없는 프로젝트")}</h3>
-      <span class="tag ${getStatusClass(log.status)}">${escapeHtml(getStatusLabel(log.status))}</span>
+      <h3>${escapeHtml(project.projectName || "제목 없는 프로젝트")}</h3>
+      <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
     </div>
     <div class="entry-meta">
-      <span class="tag">${formatDate(log.date)}</span>
-      <span class="tag teal">${escapeHtml(getActivityLabel(log.activityType))}</span>
+      <span class="tag">${formatDate(project.date)}</span>
+      <span class="tag teal">논문 ${getRelatedPapers(project.projectName).length}개</span>
     </div>
-    <p><strong>진행 내용:</strong> ${escapeHtml(log.summary || "등록된 진행 내용이 없습니다.")}</p>
-    ${options.detailed ? `<p><strong>다음 정리:</strong> ${escapeHtml(log.nextAction || "등록된 다음 할 일이 없습니다.")}</p>` : ""}
+    <p><strong>연구 과정:</strong> ${escapeHtml(project.summary || "등록된 연구 과정이 없습니다.")}</p>
+    ${renderTodoSummary(project.todos)}
     <div class="card-actions">
-      <a class="button secondary small-button" href="#log-${escapeHtml(log.id)}">상세 보기</a>
-      <button class="button ghost small-button" type="button" data-related-project="${escapeHtml(log.projectName)}">관련 논문 ${relatedCount}개</button>
+      <a class="button secondary small-button" href="#log-${escapeHtml(project.id)}">상세 보기</a>
     </div>
-    <div class="related-paper-box" hidden></div>
   `;
-
-  card.querySelector("[data-related-project]").addEventListener("click", () => {
-    toggleRelatedPapers(card, log.projectName);
-  });
   return card;
 }
 
-function toggleRelatedPapers(card, projectName) {
-  const box = card.querySelector(".related-paper-box");
-  const isOpen = !box.hidden;
-  box.hidden = isOpen;
-  if (isOpen) {
-    return;
-  }
-  box.innerHTML = renderRelatedPapersMarkup(projectName);
-}
-
-function renderLogDetail(logId) {
-  const log = researchLogs.find((item) => item.id === logId);
+function renderLogDetail(projectId) {
+  const project = researchLogs.find((item) => item.id === projectId);
   const detailTitle = document.getElementById("detailTitle");
 
-  if (!log) {
+  if (!project) {
     detailTitle.textContent = "연구 기록을 찾을 수 없습니다";
-    logDetailContent.innerHTML = '<p class="empty-state">삭제되었거나 존재하지 않는 연구 기록입니다.</p>';
+    logDetailContent.innerHTML = '<p class="empty-state">삭제되었거나 존재하지 않는 프로젝트입니다.</p>';
     return;
   }
 
-  detailTitle.textContent = log.projectName || "제목 없는 프로젝트";
+  detailTitle.textContent = project.projectName || "제목 없는 프로젝트";
   logDetailContent.innerHTML = `
     <div class="detail-meta">
-      <span class="tag">${formatDate(log.date)}</span>
-      <span class="tag teal">${escapeHtml(getActivityLabel(log.activityType))}</span>
-      <span class="tag ${getStatusClass(log.status)}">${escapeHtml(getStatusLabel(log.status))}</span>
+      <span class="tag">${formatDate(project.date)}</span>
+      <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
     </div>
     <section>
-      <h3>진행한 연구 내용</h3>
-      <p>${escapeHtml(log.summary || "등록된 진행 내용이 없습니다.")}</p>
+      <h3>연구 과정</h3>
+      <p>${escapeHtml(project.summary || "등록된 연구 과정이 없습니다.")}</p>
     </section>
     <section>
-      <h3>다음 할 일 또는 완료 정리</h3>
-      <p>${escapeHtml(log.nextAction || "등록된 다음 할 일이 없습니다.")}</p>
+      <h3>다음 할 일</h3>
+      ${renderTodoList(project.todos)}
     </section>
     <section>
       <h3>관련 논문</h3>
-      ${renderRelatedPapersMarkup(log.projectName)}
+      ${renderRelatedPapersMarkup(project.projectName)}
     </section>
     <div class="detail-actions">
-      <select class="status-select" id="detailStatusSelect" aria-label="연구 기록 상태 변경">
-        ${STATUS_OPTIONS.map((status) => `<option value="${status}" ${status === log.status ? "selected" : ""}>${getStatusLabel(status)}</option>`).join("")}
-      </select>
-      <button class="delete-button" id="detailDeleteButton" type="button">이 기록 삭제</button>
+      <button class="button primary" id="editProjectButton" type="button">수정하기</button>
+    </div>
+  `;
+  document.getElementById("editProjectButton").addEventListener("click", () => renderProjectEditMode(project.id));
+}
+
+function renderProjectEditMode(projectId) {
+  const project = researchLogs.find((item) => item.id === projectId);
+  if (!project) {
+    return;
+  }
+
+  logDetailContent.innerHTML = `
+    <div class="detail-meta">
+      <span class="tag">${formatDate(project.date)}</span>
+      <span class="tag ${getStatusClass(project.status)}">${escapeHtml(getStatusLabel(project.status))}</span>
+    </div>
+
+    <label>
+      연구 과정
+      <textarea data-edit-summary rows="7">${escapeHtml(project.summary || "")}</textarea>
+    </label>
+
+    <div class="form-row two-columns">
+      <label>
+        상태
+        <select data-edit-status>
+          ${STATUS_OPTIONS.map((status) => `<option value="${status}" ${status === project.status ? "selected" : ""}>${getStatusLabel(status)}</option>`).join("")}
+        </select>
+      </label>
+    </div>
+
+    <div class="todo-editor-block">
+      <div class="list-heading">
+        <h3>다음 할 일</h3>
+        <button class="button secondary small-button" type="button" data-add-todo>할 일 추가</button>
+      </div>
+      <div class="todo-input-list" data-edit-todos></div>
+    </div>
+
+    <div class="paper-editor-block">
+      <div class="list-heading">
+        <h3>관련 논문</h3>
+        <button class="button secondary small-button" type="button" data-toggle-paper>논문 작성</button>
+      </div>
+      <div data-paper-list>${renderRelatedPapersMarkup(project.projectName)}</div>
+      <div class="inline-paper-form" data-paper-form hidden>
+        <label>
+          논문 제목
+          <input data-paper-title type="text" placeholder="논문 제목">
+        </label>
+        <label>
+          저자
+          <input data-paper-authors type="text" placeholder="저자명">
+        </label>
+        <label>
+          내용 정리
+          <textarea data-paper-finding rows="4" placeholder="논문 핵심 내용"></textarea>
+        </label>
+        <label>
+          연구 관련성
+          <textarea data-paper-relevance rows="3" placeholder="내 연구와의 관련성"></textarea>
+        </label>
+        <button class="button primary small-button" type="button" data-save-paper>논문 노트 저장</button>
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      <button class="button primary" type="button" data-save-project>수정 저장</button>
+      <button class="button secondary" type="button" data-cancel-edit>취소</button>
+      <button class="delete-button" type="button" data-delete-project>프로젝트 삭제</button>
     </div>
   `;
 
-  document.getElementById("detailStatusSelect").addEventListener("change", (event) => {
-    updateLogStatus(log.id, event.target.value);
-    renderLogDetail(log.id);
+  const todoContainer = logDetailContent.querySelector("[data-edit-todos]");
+  renderTodoInputs(todoContainer, project.todos || []);
+
+  logDetailContent.querySelector("[data-add-todo]").addEventListener("click", () => addTodoInput(todoContainer));
+  logDetailContent.querySelector("[data-save-project]").addEventListener("click", () => {
+    saveProjectEdits(project.id, logDetailContent);
+    renderLogDetail(project.id);
   });
-  document.getElementById("detailDeleteButton").addEventListener("click", () => {
-    deleteLog(log.id);
-    window.location.hash = "#history";
+  logDetailContent.querySelector("[data-cancel-edit]").addEventListener("click", () => renderLogDetail(project.id));
+  logDetailContent.querySelector("[data-delete-project]").addEventListener("click", () => {
+    deleteProject(project.id);
+    window.location.hash = "#dashboard";
   });
+  logDetailContent.querySelector("[data-toggle-paper]").addEventListener("click", () => {
+    const form = logDetailContent.querySelector("[data-paper-form]");
+    form.hidden = !form.hidden;
+  });
+  logDetailContent.querySelector("[data-save-paper]").addEventListener("click", () => {
+    savePaperFromCard(project.projectName, logDetailContent);
+    renderProjectEditMode(project.id);
+  });
+}
+
+function saveProjectEdits(projectId, card) {
+  const project = researchLogs.find((item) => item.id === projectId);
+  if (!project) {
+    return;
+  }
+
+  project.summary = card.querySelector("[data-edit-summary]").value.trim();
+  project.status = card.querySelector("[data-edit-status]").value;
+  project.todos = collectTodoInputs(card.querySelector("[data-edit-todos]"));
+  project.updatedAt = new Date().toISOString();
+  saveUserData();
+  renderApp();
+}
+
+function savePaperFromCard(projectName, card) {
+  const title = card.querySelector("[data-paper-title]").value.trim();
+  const authors = card.querySelector("[data-paper-authors]").value.trim();
+  const keyFinding = card.querySelector("[data-paper-finding]").value.trim();
+  const relevance = card.querySelector("[data-paper-relevance]").value.trim();
+
+  if (!title || !keyFinding) {
+    alert("논문 제목과 내용 정리를 입력해 주세요.");
+    return;
+  }
+
+  paperNotes.unshift({
+    id: createId(),
+    projectName,
+    title,
+    authors,
+    keyFinding,
+    relevance,
+    createdAt: new Date().toISOString()
+  });
+
+  saveUserData();
+  renderApp();
+}
+
+function deleteProject(projectId) {
+  const project = researchLogs.find((item) => item.id === projectId);
+  if (!project || !confirm("이 프로젝트를 삭제할까요? 연결된 논문 노트는 유지됩니다.")) {
+    return;
+  }
+  researchLogs = researchLogs.filter((item) => item.id !== projectId);
+  saveUserData();
+  renderApp();
+}
+
+function renderTodoInputs(container, todos) {
+  container.innerHTML = "";
+  if (!todos || todos.length === 0) {
+    addTodoInput(container);
+    return;
+  }
+  todos.forEach((todo) => addTodoInput(container, todo));
+}
+
+function addTodoInput(container, todo = {}) {
+  const row = document.createElement("div");
+  row.className = "todo-input-row";
+  row.innerHTML = `
+    <input type="text" data-todo-text placeholder="해야 할 일" value="${escapeHtml(todo.text || "")}">
+    <input type="date" data-todo-due value="${escapeHtml(todo.dueDate || "")}" aria-label="Due date">
+    <button class="delete-button" type="button">삭제</button>
+  `;
+  row.querySelector(".delete-button").addEventListener("click", () => row.remove());
+  container.appendChild(row);
+}
+
+function ensureProjectTodoRow() {
+  if (projectTodoInputs.children.length === 0) {
+    addTodoInput(projectTodoInputs);
+  }
+}
+
+function collectTodoInputs(container) {
+  return [...container.querySelectorAll(".todo-input-row")]
+    .map((row) => ({
+      text: row.querySelector("[data-todo-text]").value.trim(),
+      dueDate: row.querySelector("[data-todo-due]").value
+    }))
+    .filter((todo) => todo.text || todo.dueDate);
+}
+
+function renderTodoSummary(todos = []) {
+  const activeTodos = todos.filter((todo) => todo.text || todo.dueDate);
+  if (activeTodos.length === 0) {
+    return '<p><strong>다음 할 일:</strong> 등록된 할 일이 없습니다.</p>';
+  }
+  return `
+    <div class="todo-summary">
+      <strong>다음 할 일</strong>
+      ${activeTodos.slice(0, 3).map((todo) => `
+        <span>${escapeHtml(todo.text || "할 일 미입력")} ${todo.dueDate ? `<em>${formatDate(todo.dueDate)}</em>` : ""}</span>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderTodoList(todos = []) {
+  const activeTodos = todos.filter((todo) => todo.text || todo.dueDate);
+  if (activeTodos.length === 0) {
+    return '<p class="empty-state compact-empty">등록된 다음 할 일이 없습니다.</p>';
+  }
+  return `
+    <div class="todo-list">
+      ${activeTodos.map((todo) => `
+        <div class="todo-item">
+          <span>${escapeHtml(todo.text || "할 일 미입력")}</span>
+          <strong>${todo.dueDate ? formatDate(todo.dueDate) : "Due date 없음"}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderRelatedPapersMarkup(projectName) {
@@ -385,69 +538,31 @@ function renderRelatedPapersMarkup(projectName) {
   `;
 }
 
-function renderPaperPreview() {
-  paperPreviewList.innerHTML = "";
-  document.getElementById("paperCount").textContent = formatKoreanCount(paperNotes.length);
-
-  if (paperNotes.length === 0) {
-    paperPreviewList.innerHTML = '<p class="empty-state">아직 논문 노트가 없습니다. 연구 기록 추가 페이지에서 논문 노트를 연결해 보세요.</p>';
-    return;
-  }
-
-  getProjectNames().forEach((projectName) => {
-    const papers = getRelatedPapers(projectName);
-    if (papers.length === 0) {
-      return;
-    }
-
-    const card = document.createElement("article");
-    card.className = "entry-card";
-    card.innerHTML = `
-      <div class="entry-header">
-        <h3>${escapeHtml(projectName)}</h3>
-        <span class="tag teal">${papers.length}개 논문</span>
-      </div>
-      ${renderRelatedPapersMarkup(projectName)}
-    `;
-    paperPreviewList.appendChild(card);
-  });
-}
-
-function getFilteredLogs() {
-  const selectedActivity = activityFilter.value;
+function getFilteredProjects() {
   const selectedStatus = statusFilter.value;
   const searchTerm = logSearch.value.trim().toLowerCase();
 
-  return getSortedLogs().filter((log) => {
-    const activityMatches = selectedActivity === "All" || log.activityType === selectedActivity;
-    const statusMatches = selectedStatus === "All" || log.status === selectedStatus;
+  return getSortedProjects().filter((project) => {
+    const statusMatches = selectedStatus === "All" || project.status === selectedStatus;
     const searchableText = [
-      log.projectName,
-      log.summary,
-      log.nextAction,
-      getActivityLabel(log.activityType),
-      getStatusLabel(log.status)
+      project.projectName,
+      project.summary,
+      ...(project.todos || []).map((todo) => `${todo.text} ${todo.dueDate}`)
     ].join(" ").toLowerCase();
 
-    return activityMatches && statusMatches && (searchTerm === "" || searchableText.includes(searchTerm));
+    return statusMatches && (searchTerm === "" || searchableText.includes(searchTerm));
   });
 }
 
-function getSortedLogs() {
-  return [...researchLogs].sort((first, second) => getLogTimestamp(second) - getLogTimestamp(first));
+function getSortedProjects() {
+  return [...researchLogs].sort((first, second) => getProjectTimestamp(second) - getProjectTimestamp(first));
 }
 
-function getLogTimestamp(log) {
-  const dateTime = Date.parse(`${log.date || ""}T00:00:00`);
-  const createdTime = Date.parse(log.createdAt || "");
-  return Number.isNaN(dateTime) ? createdTime || 0 : dateTime;
-}
-
-function getProjectNames() {
-  return [...new Set([
-    ...researchLogs.map((log) => log.projectName).filter(Boolean),
-    ...paperNotes.map((paper) => paper.projectName).filter(Boolean)
-  ])].sort((a, b) => a.localeCompare(b, "ko"));
+function getProjectTimestamp(project) {
+  const updatedTime = Date.parse(project.updatedAt || "");
+  const dateTime = Date.parse(`${project.date || ""}T00:00:00`);
+  const createdTime = Date.parse(project.createdAt || "");
+  return updatedTime || (Number.isNaN(dateTime) ? createdTime || 0 : dateTime);
 }
 
 function getRelatedPapers(projectName) {
@@ -458,20 +573,33 @@ function normalizeProjectName(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function updateLogStatus(logId, status) {
-  if (!STATUS_OPTIONS.includes(status)) {
-    return;
+function focusDashboardEditor(target) {
+  if (window.location.hash !== "#dashboard") {
+    window.location.hash = "#dashboard";
   }
-
-  researchLogs = researchLogs.map((log) => log.id === logId ? { ...log, status } : log);
-  saveUserData();
-  renderApp();
+  window.setTimeout(() => {
+    const firstCard = dashboardProjectList.querySelector(".dashboard-summary-card");
+    if (!firstCard) {
+      window.location.hash = "#log-new";
+      return;
+    }
+    const detailLink = firstCard.querySelector("a[href^='#log-']");
+    detailLink?.click();
+    window.setTimeout(() => {
+      document.getElementById("editProjectButton")?.click();
+      const selector = target === "todo" ? "[data-todo-text]" : target === "paper" ? "[data-toggle-paper]" : "[data-edit-summary]";
+      const element = logDetailContent.querySelector(selector);
+      if (target === "paper") {
+        element?.click();
+      }
+      element?.focus();
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  }, 80);
 }
 
-function deleteLog(logId) {
-  researchLogs = researchLogs.filter((log) => log.id !== logId);
-  saveUserData();
-  renderApp();
+function truncateText(text, maxLength) {
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 }
 
 function loadSampleData() {
@@ -519,6 +647,7 @@ function loadCurrentUser() {
 function loadUserData() {
   researchLogs = loadFromStorage(getUserStorageKey("logs"));
   paperNotes = loadFromStorage(getUserStorageKey("papers"));
+  migrateProjectShape();
 }
 
 function saveUserData() {
@@ -529,53 +658,39 @@ function saveUserData() {
   localStorage.setItem(getUserStorageKey("papers"), JSON.stringify(paperNotes));
 }
 
+function migrateProjectShape() {
+  researchLogs = researchLogs.map((project) => ({
+    ...project,
+    status: project.status || "In Progress",
+    todos: Array.isArray(project.todos)
+      ? project.todos
+      : project.nextAction
+        ? [{ text: project.nextAction, dueDate: "" }]
+        : []
+  }));
+}
+
 function getUserStorageKey(type) {
   return `researchLog:${currentUser.id}:${type}`;
 }
 
-function normalizeAccountId(value) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9가-힣_-]+/g, "-").replace(/^-+|-+$/g, "") || createId();
-}
-
-function validateResearchLog(log) {
-  if (!log.date) {
-    return "연구 기록 날짜를 선택해 주세요.";
+function validateProject(project) {
+  if (!project.date) {
+    return "시작일을 선택해 주세요.";
   }
-  if (!log.projectName) {
+  if (!project.projectName) {
     return "프로젝트명을 입력해 주세요.";
   }
-  if (!log.activityType) {
-    return "활동 유형을 선택해 주세요.";
-  }
-  if (!log.status) {
-    return "상태를 선택해 주세요.";
-  }
-  if (!log.summary) {
-    return "저장하기 전에 진행 내용을 입력해 주세요.";
-  }
-  return "";
-}
-
-function validatePaperNote(note) {
-  if (!note.projectName) {
-    return "논문을 연결할 프로젝트명을 입력해 주세요.";
-  }
-  if (!note.title) {
-    return "논문 제목을 입력해 주세요.";
-  }
-  if (!note.keyFinding) {
-    return "저장하기 전에 논문 내용 정리를 입력해 주세요.";
+  if (!project.summary) {
+    return "진행 중인 연구 내용을 입력해 주세요.";
   }
   return "";
 }
 
 function createSampleData() {
   const today = new Date();
-  const yesterday = addDays(today, -1);
   const threeDaysAgo = addDays(today, -3);
-  const fiveDaysAgo = addDays(today, -5);
   const lastWeek = addDays(today, -8);
-
   const ragProject = "검색 증강 생성 평가 연구";
   const bioProject = "단백질 접힘 예측 실험";
 
@@ -583,53 +698,30 @@ function createSampleData() {
     logs: [
       {
         id: createId(),
-        date: toDateInputValue(today),
-        projectName: ragProject,
-        activityType: "Writing",
-        status: "Completed",
-        summary: "검색 증강 생성 모델의 평가 결과를 정리했습니다. 동일한 질문 120개에 대해 기본 생성 모델과 검색 결합 모델을 비교했고, 답변의 근거 포함 여부, 인용 문장 정확도, 불필요한 환각 문장 수를 표로 정리했습니다. 검색 결합 모델은 근거 포함률이 62%에서 88%로 높아졌고, 잘못된 인용은 주로 검색 문서가 너무 길 때 발생한다는 패턴을 확인했습니다.",
-        nextAction: "완료 정리: 검색 문서 길이를 800자 내외로 제한하고 상위 3개 문단만 넣는 설정이 가장 안정적이었습니다. 최종 보고서에는 평가 지표 정의, 실패 사례 5개, 추천 파이프라인 구조를 포함합니다.",
-        createdAt: today.toISOString()
-      },
-      {
-        id: createId(),
-        date: toDateInputValue(yesterday),
-        projectName: ragProject,
-        activityType: "Experiment",
-        status: "Completed",
-        summary: "문서 검색 top-k 값을 1, 3, 5로 바꾸며 실험했습니다. top-k 1은 답변이 간결하지만 근거 누락이 많았고, top-k 5는 정보량은 늘었지만 서로 충돌하는 문장이 함께 들어와 답변 품질이 흔들렸습니다. top-k 3에서 정확도와 응답 길이의 균형이 가장 좋았습니다.",
-        nextAction: "다음에는 검색 점수 임계값을 추가해 낮은 관련도의 문단을 제거하고, 인용 문장 생성 프롬프트를 더 엄격하게 조정합니다.",
-        createdAt: yesterday.toISOString()
-      },
-      {
-        id: createId(),
         date: toDateInputValue(threeDaysAgo),
         projectName: ragProject,
-        activityType: "Paper Reading",
-        status: "Completed",
-        summary: "검색 증강 생성 관련 선행연구 3편을 읽고 평가 방식의 차이를 비교했습니다. 일부 논문은 정답 정확도만 평가했지만, 실제 연구 기록 도구에서는 답변이 어떤 문헌에 근거하는지도 중요하므로 인용 정확도와 근거 문장 일치율을 별도 지표로 두기로 했습니다.",
-        nextAction: "논문별 평가 지표를 표로 정리하고, 내 실험에서 재현 가능한 지표와 어려운 지표를 구분합니다.",
-        createdAt: threeDaysAgo.toISOString()
-      },
-      {
-        id: createId(),
-        date: toDateInputValue(fiveDaysAgo),
-        projectName: bioProject,
-        activityType: "Experiment",
         status: "In Progress",
-        summary: "단백질 접힘 예측 모델의 베이스라인 학습을 실행했습니다. 초기 설정에서는 18 에폭 이후 검증 손실이 흔들렸고, 긴 서열에서 예측 오차가 크게 증가했습니다. 학습률을 절반으로 낮추고 배치 크기를 줄이자 손실 곡선은 안정화되었지만 학습 시간이 약 1.7배 늘었습니다.",
-        nextAction: "서열 길이별 성능을 분리해 확인하고, 긴 서열에 대해서는 데이터 증강보다 positional encoding 설정 변경이 더 효과적인지 비교합니다.",
-        createdAt: fiveDaysAgo.toISOString()
+        summary: "검색 증강 생성 모델의 답변 품질을 평가하는 연구입니다. 동일한 질문 120개에 대해 기본 생성 모델과 검색 결합 모델을 비교했고, 근거 포함 여부, 인용 문장 정확도, 환각 문장 수를 지표로 정리하고 있습니다. 현재 top-k 3 설정이 가장 안정적이며, 검색 문서 길이가 너무 길 때 잘못된 인용이 증가하는 패턴을 확인했습니다.",
+        todos: [
+          { text: "검색 점수 임계값을 적용한 실험 다시 실행", dueDate: toDateInputValue(addDays(today, 2)) },
+          { text: "실패 사례 5개를 보고서 표로 정리", dueDate: toDateInputValue(addDays(today, 4)) },
+          { text: "최종 평가 지표 정의 문단 작성", dueDate: toDateInputValue(addDays(today, 6)) }
+        ],
+        createdAt: threeDaysAgo.toISOString(),
+        updatedAt: today.toISOString()
       },
       {
         id: createId(),
         date: toDateInputValue(lastWeek),
         projectName: bioProject,
-        activityType: "Meeting",
         status: "Planned",
-        summary: "연구실 회의에서 실험 설계를 검토했습니다. 현재 데이터셋은 짧은 서열이 많아 전체 정확도만 보면 모델이 좋아 보일 수 있다는 지적을 받았습니다. 따라서 길이 구간별 MAE와 구조적 유사도 지표를 함께 보고하기로 했습니다.",
-        nextAction: "다음 회의 전까지 서열 길이 기준을 3개 구간으로 나누고, 각 구간의 데이터 수와 성능을 요약합니다.",
-        createdAt: lastWeek.toISOString()
+        summary: "단백질 접힘 예측 모델의 베이스라인을 검증하는 연구입니다. 초기 학습에서는 18 에폭 이후 검증 손실이 흔들렸고, 긴 서열에서 예측 오차가 크게 증가했습니다. 전체 평균 성능만 보면 짧은 서열에 편향될 수 있어서 서열 길이별 성능을 따로 분석하려고 합니다.",
+        todos: [
+          { text: "서열 길이를 3개 구간으로 나누어 성능 재계산", dueDate: toDateInputValue(addDays(today, 3)) },
+          { text: "positional encoding 설정 변경 실험 준비", dueDate: toDateInputValue(addDays(today, 7)) }
+        ],
+        createdAt: lastWeek.toISOString(),
+        updatedAt: lastWeek.toISOString()
       }
     ],
     papers: [
@@ -638,26 +730,17 @@ function createSampleData() {
         projectName: ragProject,
         title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
         authors: "Patrick Lewis 외",
-        keyFinding: "검색된 문서와 생성 모델을 결합하면 지식이 많이 필요한 질의응답에서 정확도가 개선됩니다. 특히 모델 내부 지식만 사용하는 방식보다 최신 문서나 외부 근거를 반영하기 쉽다는 점이 중요했습니다.",
-        relevance: "내 프로젝트에서는 답변 정확도뿐 아니라 검색 문서가 실제 답변의 근거로 쓰였는지를 평가해야 한다는 방향을 잡는 데 도움이 되었습니다.",
+        keyFinding: "검색된 문서와 생성 모델을 결합하면 지식이 많이 필요한 질의응답에서 정확도가 개선됩니다.",
+        relevance: "답변 정확도뿐 아니라 검색 문서가 실제 답변의 근거로 쓰였는지를 평가해야 한다는 방향을 잡는 데 사용했습니다.",
         createdAt: threeDaysAgo.toISOString()
-      },
-      {
-        id: createId(),
-        projectName: ragProject,
-        title: "REALM: Retrieval-Augmented Language Model Pre-Training",
-        authors: "Kelvin Guu 외",
-        keyFinding: "언어 모델 학습 단계부터 검색 모듈을 함께 사용하는 접근을 제안합니다. 검색 결과가 단순 부가 정보가 아니라 모델 예측 과정에 직접 영향을 준다는 점이 핵심입니다.",
-        relevance: "검색 모듈을 후처리처럼 붙이는 방식과 학습 과정에 통합하는 방식의 차이를 이해하는 데 사용했습니다.",
-        createdAt: yesterday.toISOString()
       },
       {
         id: createId(),
         projectName: ragProject,
         title: "Self-RAG: Learning to Retrieve, Generate, and Critique",
         authors: "Akari Asai 외",
-        keyFinding: "모델이 언제 검색해야 하는지, 생성 결과를 어떻게 비판적으로 점검할지 학습하는 방식입니다. 무조건 검색하는 것이 아니라 검색 필요성을 판단한다는 점이 인상적이었습니다.",
-        relevance: "실패 사례 분석에서 검색이 오히려 답변을 흐리는 경우를 설명하는 참고 논문으로 연결했습니다.",
+        keyFinding: "모델이 언제 검색해야 하는지, 생성 결과를 어떻게 비판적으로 점검할지 학습하는 방식입니다.",
+        relevance: "검색이 오히려 답변을 흐리는 실패 사례를 설명하는 참고 논문으로 연결했습니다.",
         createdAt: today.toISOString()
       },
       {
@@ -665,17 +748,8 @@ function createSampleData() {
         projectName: bioProject,
         title: "Highly Accurate Protein Structure Prediction with AlphaFold",
         authors: "John Jumper 외",
-        keyFinding: "진화 정보와 딥러닝 구조 모듈을 결합해 단백질 구조 예측 정확도를 크게 높였습니다. 모델 구조뿐 아니라 평가 지표를 길이와 난이도에 따라 나누어 보는 방식이 중요했습니다.",
-        relevance: "단백질 접힘 예측 실험에서 전체 평균 성능만 보지 않고 서열 길이별 성능을 따로 봐야 한다는 근거로 사용했습니다.",
-        createdAt: fiveDaysAgo.toISOString()
-      },
-      {
-        id: createId(),
-        projectName: bioProject,
-        title: "Improved Protein Structure Prediction Using Potentials from Deep Learning",
-        authors: "Andrew Senior 외",
-        keyFinding: "딥러닝 기반 거리 예측과 구조 최적화를 연결해 단백질 구조 예측을 개선했습니다. 예측값 자체보다 후속 최적화 과정이 결과 품질에 큰 영향을 줄 수 있음을 보여줍니다.",
-        relevance: "현재 베이스라인 모델의 오차가 모델 출력 단계에서 생기는지, 후처리 구조 변환 단계에서 커지는지 분리해 볼 필요가 있다는 아이디어를 얻었습니다.",
+        keyFinding: "진화 정보와 딥러닝 구조 모듈을 결합해 단백질 구조 예측 정확도를 크게 높였습니다.",
+        relevance: "전체 평균 성능만 보지 않고 서열 길이별 성능을 따로 봐야 한다는 근거로 사용했습니다.",
         createdAt: lastWeek.toISOString()
       }
     ]
@@ -686,8 +760,8 @@ function setDefaultDate() {
   document.getElementById("logDate").value = getTodayDate();
 }
 
-function countLogsByStatus(status) {
-  return researchLogs.filter((log) => log.status === status).length;
+function countProjectsByStatus(status) {
+  return researchLogs.filter((project) => project.status === status).length;
 }
 
 function showValidationMessage(element, message) {
@@ -730,17 +804,8 @@ function formatDate(dateString) {
   }).format(date);
 }
 
-function formatKoreanCount(count) {
-  const safeCount = Number.isFinite(count) ? count : 0;
-  return `${safeCount}개`;
-}
-
 function getStatusLabel(status) {
   return STATUS_LABELS[status] || "예정";
-}
-
-function getActivityLabel(activity) {
-  return ACTIVITY_LABELS[activity] || "활동";
 }
 
 function getStatusClass(status) {
@@ -766,6 +831,10 @@ function addDays(date, days) {
   const copy = new Date(date);
   copy.setDate(copy.getDate() + days);
   return copy;
+}
+
+function normalizeAccountId(value) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9가-힣_-]+/g, "-").replace(/^-+|-+$/g, "") || createId();
 }
 
 function createId() {
